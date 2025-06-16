@@ -460,6 +460,34 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     const avgGLCount = 3; // 평균적으로 3개 정도의 GL (Stitching, Stockfit, Assembly)
     const lineWidth = Math.max(500, avgGLCount * glSpacing + 150);
 
+    // ===== 추가: 모든 라인 중 최대 TL 개수 계산 (TM 시작 Y 정렬용) =====
+    let globalMaxTLCount = 0;
+    // 1) 메인 공정 TL 최대값 평가
+    Array(config.lineCount).fill(null).forEach((_, gLineIdx) => {
+      const modelIdx = effectiveLineModelSelections[gLineIdx] || 0;
+      const selModel = models[modelIdx];
+      const { mainProcesses } = getProcessGroups(config, selModel, gLineIdx);
+      const localMax = Math.max(...mainProcesses.map(p => p.tlGroup.length));
+      if (localMax > globalMaxTLCount) globalMaxTLCount = localMax;
+    });
+    // 2) 분리 공정(노소/HF) TL 개수도 고려 (라인 수 기반)
+    let nosewLineCount = 0;
+    let hfLineCount = 0;
+    Array(config.lineCount).fill(null).forEach((_, gLineIdx) => {
+      const modelIdx = effectiveLineModelSelections[gLineIdx] || 0;
+      const selModel = models[modelIdx];
+      if (!selModel) return;
+      const processes = selModel.processes || [];
+      if (processes.some((p: any) => p.name.toLowerCase().includes('no-sew'))) {
+        nosewLineCount++;
+      }
+      if (processes.some((p: any) => p.name.toLowerCase().includes('hf welding'))) {
+        hfLineCount++;
+      }
+    });
+    globalMaxTLCount = Math.max(globalMaxTLCount, nosewLineCount, hfLineCount);
+    // ================================================================
+
     // MGL 노드 (중앙 상단)
     const mglId = getNextId();
     const mglX = (config.lineCount * lineWidth) / 2;
@@ -509,9 +537,8 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         type: 'smoothstep',
       });
 
-      // 이 라인의 최대 TL 개수 계산 (TM 레벨 통일을 위해)
-      const maxTLCount = Math.max(...mainProcesses.map(p => p.tlGroup.length));
-      const tmStartY = glY + levelHeight + (maxTLCount * 80) + 40; // 모든 TL들 아래에서 TM 시작 (적절한 간격)
+      // TM 레벨을 모든 라인에서 동일하게 유지하기 위해 글로벌 최대 TL 개수를 사용
+      const tmStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40;
 
       mainProcesses.forEach((processGroup, processIndex) => {
         // GL 노드 - showGL 플래그 확인하여 선택적 생성
@@ -599,7 +626,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           processGroup.tmGroup.forEach((tm: any, tmIndex: number) => {
             const tmId = getNextId();
             const tmX = glX; // GL과 같은 X 위치 (센터 정렬)
-            const tmY = tmStartY + (tmIndex * 80); // 통일된 TM 레벨에서 시작
+            const tmY = tmStartY + (tmIndex * 80); // 글로벌 TM 시작 Y 사용하여 모든 열에서 TM(MH) 정렬
             
             nodes.push({
               id: tmId,
@@ -684,29 +711,43 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       blankDeptIds['hfA']    = createBlankDeptNode(separatedStartX + glSpacing * 2);
       blankDeptIds['hfB']    = createBlankDeptNode(separatedStartX + glSpacing * 3);
 
-      // No-sew A 열 (첫 번째 열)
-      const nosewAGlId = getNextId();
-      const nosewAX = separatedStartX;
-      
-      nodes.push({
-        id: nosewAGlId,
-        type: 'position',
-        position: { x: nosewAX, y: glY },
-        data: { 
-          title: 'GL', 
-          subtitle: 'No-sew A', 
-          level: 2, 
-          colorCategory: 'direct' 
-        },
+      // === No-sew용 GL 표시 개수 계산 ===
+      let noSewLineCount = 0;
+      Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
+        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
+        const selectedModel = models[modelIndex];
+        if (selectedModel?.processes?.some((p: any) => p.name.toLowerCase().includes('no-sew'))) {
+          noSewLineCount++;
+        }
       });
+      // 총 No-sew TL 수 = 라인 수 × 시프트 수
+      const totalNoSewTL = noSewLineCount * config.shiftsCount;
+      // GL은 TL이 4개 단위로 꽉 찰 때마다 1명 증가 (4 미만이면 0)
+      const noSewGlNeeded = Math.floor(totalNoSewTL / 4);
 
-      // 빈 부서 노드 → No-sew A GL 연결
-      edges.push({
-        id: `edge-${blankDeptIds['nosewA']}-${nosewAGlId}`,
-        source: blankDeptIds['nosewA'],
-        target: nosewAGlId,
-        type: 'smoothstep',
-      });
+      // No-sew A GL (shift A) : 무조건 첫 번째로 배치, 필요 GL 수가 1 이상일 때만
+      let nosewAGlId = '';
+      if (noSewGlNeeded >= 1) {
+        nosewAGlId = getNextId();
+        nodes.push({
+          id: nosewAGlId,
+          type: 'position',
+          position: { x: separatedStartX, y: glY },
+          data: {
+            title: 'GL',
+            subtitle: 'No-sew A',
+            level: 2,
+            colorCategory: 'direct',
+          },
+        });
+
+        edges.push({
+          id: `edge-${blankDeptIds['nosewA']}-${nosewAGlId}`,
+          source: blankDeptIds['nosewA'],
+          target: nosewAGlId,
+          type: 'smoothstep',
+        });
+      }
 
       // No-sew A TL들 (해당 공정이 있는 라인만)
       let lastTlId = '';
@@ -732,7 +773,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           nodes.push({
             id: tlId,
             type: 'position',
-            position: { x: nosewAX, y: tlY },
+            position: { x: separatedStartX, y: tlY },
             data: { 
               title: 'TL', 
               subtitle: `[${manpowerPerShift}명] / Line ${lineIndex + 1} / No-sew A`, 
@@ -742,12 +783,23 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           });
 
           if (tlIndex === 0) {
-            edges.push({
-              id: `edge-${nosewAGlId}-${tlId}`,
-              source: nosewAGlId,
-              target: tlId,
-              type: 'smoothstep',
-            });
+            if (nosewAGlId) {
+              // GL이 있는 경우 GL → TL
+              edges.push({
+                id: `edge-${nosewAGlId}-${tlId}`,
+                source: nosewAGlId,
+                target: tlId,
+                type: 'smoothstep',
+              });
+            } else {
+              // GL이 없는 경우 BLANK DEPT → TL
+              edges.push({
+                id: `edge-${blankDeptIds['nosewA']}-${tlId}`,
+                source: blankDeptIds['nosewA'],
+                target: tlId,
+                type: 'smoothstep',
+              });
+            }
           } else {
             edges.push({
               id: `edge-${lastTlId}-${tlId}`,
@@ -763,7 +815,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
       // No-sew A TM들 (해당 공정이 있는 라인만)
       let lastTmId = '';
-      const tmStartY = glY + levelHeight + (tlIndex * 80) + 40; // tlIndex 기반으로 계산
+      const tmStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40; // 글로벌 TM 시작 Y 적용
       let tmIndex = 0;
       Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
         // 해당 라인의 No-sew 인원수 확인
@@ -782,7 +834,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           nodes.push({
             id: tmId,
             type: 'position',
-            position: { x: nosewAX, y: tmY },
+            position: { x: separatedStartX, y: tmY },
             data: { 
               title: 'TM(MH)', 
               subtitle: `Line ${lineIndex + 1} Cutting / → No-sew A`, 
@@ -811,32 +863,34 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         }
       });
 
-      // No-sew B 열 (두 번째 열) - 쉬프트수가 2 이상일 때만
+      // No-sew B 열 (두 번째 열) - 쉬프트수가 2 이상이고 GL이 2개 이상 필요할 때만 GL 표시
       let nosewBGlId = '';
       let nosewBX = 0;
       if (config.shiftsCount >= 2) {
-        nosewBGlId = getNextId();
         nosewBX = separatedStartX + glSpacing;
-        
-        nodes.push({
-          id: nosewBGlId,
-          type: 'position',
-          position: { x: nosewBX, y: glY },
-          data: { 
-            title: 'GL', 
-            subtitle: 'No-sew B', 
-            level: 2, 
-            colorCategory: 'direct' 
-          },
-        });
 
-        // 빈 부서 노드 → No-sew B GL 연결
-        edges.push({
-          id: `edge-${blankDeptIds['nosewB']}-${nosewBGlId}`,
-          source: blankDeptIds['nosewB'],
-          target: nosewBGlId,
-          type: 'smoothstep',
-        });
+        if (noSewGlNeeded >= 2) {
+          nosewBGlId = getNextId();
+          nodes.push({
+            id: nosewBGlId,
+            type: 'position',
+            position: { x: nosewBX, y: glY },
+            data: { 
+              title: 'GL', 
+              subtitle: 'No-sew B', 
+              level: 2, 
+              colorCategory: 'direct' 
+            },
+          });
+
+          // 빈 부서 노드 → No-sew B GL 연결
+          edges.push({
+            id: `edge-${blankDeptIds['nosewB']}-${nosewBGlId}`,
+            source: blankDeptIds['nosewB'],
+            target: nosewBGlId,
+            type: 'smoothstep',
+          });
+        }
       }
 
       // No-sew B TL들 (쉬프트수가 2 이상이고 해당 공정이 있는 라인만)
@@ -874,12 +928,21 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             });
 
             if (tlIndex === 0) {
-              edges.push({
-                id: `edge-${nosewBGlId}-${tlId}`,
-                source: nosewBGlId,
-                target: tlId,
-                type: 'smoothstep',
-              });
+              if (nosewBGlId) {
+                edges.push({
+                  id: `edge-${nosewBGlId}-${tlId}`,
+                  source: nosewBGlId,
+                  target: tlId,
+                  type: 'smoothstep',
+                });
+              } else {
+                edges.push({
+                  id: `edge-${blankDeptIds['nosewB']}-${tlId}`,
+                  source: blankDeptIds['nosewB'],
+                  target: tlId,
+                  type: 'smoothstep',
+                });
+              }
             } else {
               edges.push({
                 id: `edge-${lastTlId}-${tlId}`,
@@ -896,56 +959,38 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
       // No-sew B TM들 (쉬프트수가 2 이상이고 해당 공정이 있는 라인만)
       if (config.shiftsCount >= 2) {
+        const tmStartYB = glY + levelHeight + (globalMaxTLCount * 80) + 40;
         lastTmId = '';
-        const tmStartYB = glY + levelHeight + (tlIndex * 80) + 40; // No-sew B의 tlIndex 기반
-        tmIndex = 0;
+        let tmIndexB = 0;
         Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-          // 해당 라인의 No-sew 인원수 확인
           const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
           const selectedModel = models[modelIndex];
-          const nosewProcess = selectedModel?.processes?.find((p: any) => 
+          const nosewProcess = selectedModel?.processes?.find((p: any) =>
             p.name.toLowerCase().includes('no-sew') && !p.name.toLowerCase().includes('cutting')
           );
-          
-          // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-          const totalManpower = nosewProcess?.manAsy || 0;
-          const shiftsCount = nosewProcess?.shift || 1;
-          const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-          
-          // No-sew 공정이 있는 라인만 TM 생성
-          if (totalManpower > 0) {
+
+          if (nosewProcess?.manAsy) {
             const tmId = getNextId();
-            const tmY = tmStartYB + (tmIndex * 80);
-            
+            const tmY = tmStartYB + (tmIndexB * 80);
             nodes.push({
               id: tmId,
               type: 'position',
               position: { x: nosewBX, y: tmY },
-              data: { 
-                title: 'TM(MH)', 
-                subtitle: `Line ${lineIndex + 1} Cutting / → No-sew B`, 
-                level: 4, 
-                colorCategory: 'direct' 
+              data: {
+                title: 'TM(MH)',
+                subtitle: `Line ${lineIndex + 1} Cutting / → No-sew B`,
+                level: 4,
+                colorCategory: 'direct',
               },
             });
 
-            if (tmIndex === 0 && lastTlId) {
-              edges.push({
-                id: `edge-${lastTlId}-${tmId}`,
-                source: lastTlId,
-                target: tmId,
-                type: 'smoothstep',
-              });
-            } else if (tmIndex > 0) {
-              edges.push({
-                id: `edge-${lastTmId}-${tmId}`,
-                source: lastTmId,
-                target: tmId,
-                type: 'smoothstep',
-              });
+            if (tmIndexB === 0 && lastTlId) {
+              edges.push({ id: `edge-${lastTlId}-${tmId}`, source: lastTlId, target: tmId, type: 'smoothstep' });
+            } else if (tmIndexB > 0) {
+              edges.push({ id: `edge-${lastTmId}-${tmId}`, source: lastTmId, target: tmId, type: 'smoothstep' });
             }
             lastTmId = tmId;
-            tmIndex++;
+            tmIndexB++;
           }
         });
       }
@@ -1007,59 +1052,21 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         }
       });
 
-      // HF Welding A TM들 (해당 공정이 있는 라인만)
+      // HF Welding A TM들 : TL 2개당 TM 1개
+      const tmStartYHFA = glY + levelHeight + (globalMaxTLCount * 80) + 40;
+      const hfATmCount = Math.ceil(tlIndex / 2);
       lastTmId = '';
-      const tmStartYHFA = glY + levelHeight + (tlIndex * 80) + 40; // HF Welding A의 tlIndex 기반
-      tmIndex = 0;
-      Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-        // 해당 라인의 HF Welding 인원수 확인
-        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-        const selectedModel = models[modelIndex];
-        const hfProcess = selectedModel?.processes?.find((p: any) => 
-          p.name.toLowerCase().includes('hf welding')
-        );
-        
-        // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-        const totalManpower = hfProcess?.manAsy || 0;
-        const shiftsCount = hfProcess?.shift || 1;
-        const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-        
-        // HF Welding 공정이 있는 라인만 TM 생성
-        if (totalManpower > 0) {
-          const tmId = getNextId();
-          const tmY = tmStartYHFA + (tmIndex * 80);
-          
-          nodes.push({
-            id: tmId,
-            type: 'position',
-            position: { x: hfAX, y: tmY },
-            data: { 
-              title: 'TM(MH)', 
-              subtitle: `Line ${lineIndex + 1} Cutting / → HF Welding`, 
-              level: 4, 
-              colorCategory: 'direct' 
-            },
-          });
-
-          if (tmIndex === 0 && lastTlId) {
-            edges.push({
-              id: `edge-${lastTlId}-${tmId}`,
-              source: lastTlId,
-              target: tmId,
-              type: 'smoothstep',
-            });
-          } else if (tmIndex > 0) {
-            edges.push({
-              id: `edge-${lastTmId}-${tmId}`,
-              source: lastTmId,
-              target: tmId,
-              type: 'smoothstep',
-            });
-          }
-          lastTmId = tmId;
-          tmIndex++;
+      for (let i = 0; i < hfATmCount; i++) {
+        const tmId = getNextId();
+        const tmY = tmStartYHFA + (i * 80);
+        nodes.push({ id: tmId, type: 'position', position: { x: hfAX, y: tmY }, data: { title: 'TM(MH)', subtitle: `HF Welding A TM ${i+1}`, level: 4, colorCategory: 'direct' }, });
+        if (i === 0 && lastTlId) {
+          edges.push({ id: `edge-${lastTlId}-${tmId}`, source: lastTlId, target: tmId, type: 'smoothstep' });
+        } else if (i > 0) {
+          edges.push({ id: `edge-${lastTmId}-${tmId}`, source: lastTmId, target: tmId, type: 'smoothstep' });
         }
-      });
+        lastTmId = tmId;
+      }
 
       // HF Welding B 열 (네 번째 열, GL 없음) - 쉬프트수가 2 이상일 때만
       if (config.shiftsCount >= 2) {
@@ -1119,59 +1126,21 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           }
         });
 
-        // HF Welding B TM들 (해당 공정이 있는 라인만)
+        // HF Welding B TM들 : TL 2개당 TM 1개
+        const tmStartYHFB = glY + levelHeight + (globalMaxTLCount * 80) + 40;
+        const hfBTmCount = Math.ceil(tlIndex / 2);
         lastTmId = '';
-        const tmStartYHFB = glY + levelHeight + (tlIndex * 80) + 40; // HF Welding B의 tlIndex 기반
-        tmIndex = 0;
-        Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-          // 해당 라인의 HF Welding 인원수 확인
-          const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-          const selectedModel = models[modelIndex];
-          const hfProcess = selectedModel?.processes?.find((p: any) => 
-            p.name.toLowerCase().includes('hf welding')
-          );
-          
-          // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-          const totalManpower = hfProcess?.manAsy || 0;
-          const shiftsCount = hfProcess?.shift || 1;
-          const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-          
-          // HF Welding 공정이 있는 라인만 TM 생성
-          if (totalManpower > 0) {
-            const tmId = getNextId();
-            const tmY = tmStartYHFB + (tmIndex * 80);
-            
-            nodes.push({
-              id: tmId,
-              type: 'position',
-              position: { x: hfBX, y: tmY },
-              data: { 
-                title: 'TM(MH)', 
-                subtitle: `Line ${lineIndex + 1} Cutting / → HF Welding`, 
-                level: 4, 
-                colorCategory: 'direct' 
-              },
-            });
-
-            if (tmIndex === 0 && lastTlId) {
-              edges.push({
-                id: `edge-${lastTlId}-${tmId}`,
-                source: lastTlId,
-                target: tmId,
-                type: 'smoothstep',
-              });
-            } else if (tmIndex > 0) {
-              edges.push({
-                id: `edge-${lastTmId}-${tmId}`,
-                source: lastTmId,
-                target: tmId,
-                type: 'smoothstep',
-              });
-            }
-            lastTmId = tmId;
-            tmIndex++;
+        for (let i = 0; i < hfBTmCount; i++) {
+          const tmId = getNextId();
+          const tmY = tmStartYHFB + (i * 80);
+          nodes.push({ id: tmId, type: 'position', position: { x: hfBX, y: tmY }, data: { title: 'TM(MH)', subtitle: `HF Welding B TM ${i+1}`, level: 4, colorCategory: 'direct' } });
+          if (i === 0 && lastTlId) {
+            edges.push({ id: `edge-${lastTlId}-${tmId}`, source: lastTlId, target: tmId, type: 'smoothstep' });
+          } else if (i > 0) {
+            edges.push({ id: `edge-${lastTmId}-${tmId}`, source: lastTmId, target: tmId, type: 'smoothstep' });
           }
-        });
+          lastTmId = tmId;
+        }
       }
     }
 
