@@ -3,12 +3,12 @@ import ReactFlow, {
   Node,
   Edge,
   Background,
-  Controls,
   MiniMap,
   useNodesState,
   useEdgesState,
   Handle,
   Position,
+  ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
@@ -142,7 +142,11 @@ const nodeTypes = {
   position: CustomPositionNode,
 };
 
-export const ReactFlowPage3: React.FC = () => {
+interface ReactFlowPage3Props {
+  onInit?: (instance: ReactFlowInstance) => void;
+}
+
+export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
   const { config } = useOrgChart();
 
   // 2라인씩 묶는 유틸리티 함수
@@ -352,10 +356,10 @@ export const ReactFlowPage3: React.FC = () => {
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.1 }}
+        onInit={onInit}
       >
-        <Background />
-        <Controls />
         <MiniMap />
+        <Background variant={'dots' as any} gap={12} size={1} />
       </ReactFlow>
     </div>
   );

@@ -31,6 +31,7 @@ export default function OrgChartPage() {
     <div className="p-4">
       <OrgChartProvider>
         <div className="p-4">
+          {/* 페이지 선택 드롭다운 */}
           <select
             onChange={(e) => setCurrentPage(e.target.value)}
             value={currentPage}
@@ -42,6 +43,7 @@ export default function OrgChartPage() {
             <option value="4">Aggregation Page</option>
             <option value="5">Model-based Manpower Setting</option>
           </select>
+
           {renderCurrentPage()}
         </div>
       </OrgChartProvider>

@@ -2,20 +2,21 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOrgChart } from "@/context/OrgChartContext";
 import { ReactFlowPage3 } from "@/components/common/ReactFlowPage3";
+import { ReactFlowInstance } from 'reactflow';
 
 const Page3: React.FC = () => {
   const { config, updateConfig } = useOrgChart();
 
   // === 확대/축소 & 패닝(드래그) 관련 ===
-  const [zoomScale, setZoomScale] = useState<number>(0.8);
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleZoomIn = () => setZoomScale((prev) => prev + 0.1);
-  const handleZoomOut = () => setZoomScale((prev) => Math.max(0.1, prev - 0.1));
-  const handleZoomReset = () => setZoomScale(0.8);
+  const handleZoomIn = () => rfInstance?.zoomIn?.({ duration: 300 });
+  const handleZoomOut = () => rfInstance?.zoomOut?.({ duration: 300 });
+  const handleZoomReset = () => rfInstance?.fitView?.({ duration: 300 });
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 1 || e.button === 0) {
@@ -137,7 +138,7 @@ const Page3: React.FC = () => {
   return (
     <div className="h-screen w-screen overflow-hidden bg-white relative">
       {/* ReactFlow 조직도 - 전체 화면 */}
-      <ReactFlowPage3 />
+      <ReactFlowPage3 onInit={(inst) => setRfInstance(inst)} />
       
       {/* 색상 범례 - 오른쪽 상단 */}
       <div className="fixed right-8 top-8 flex flex-row gap-2 z-50">

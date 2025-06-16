@@ -11,6 +11,7 @@ import { useOrgChart, type Config } from "@/context/OrgChartContext";
 import { GAPS, BACKGROUNDS, BORDERS, LAYOUTS, DEPARTMENT_GAPS, COMMON_STYLES, CONNECTORS } from '@/components/common/styles';
 import { getPage2SpacingConfig, getVerticalSpacing, getHorizontalSpacing } from "@/components/common/spacingConfig";
 import { ReactFlowPage2 } from "@/components/common/ReactFlowPage2";
+import { ReactFlowInstance } from 'reactflow';
 
 // === [1] Config 인터페이스 제거 ===
 // interface Config { ... } 삭제
@@ -23,15 +24,15 @@ const Page2: React.FC = () => {
   const multiColumnDepts = ["FG WH", "Bottom Market", "P&L Market"];
 
   // === (A) 확대/축소 & 패닝(드래그) 관련 ===
-  const [zoomScale, setZoomScale] = useState<number>(0.8); // 초기값 (조금 더 크게)
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const handleZoomIn = () => setZoomScale((prev) => prev + 0.1);
-  const handleZoomOut = () => setZoomScale((prev) => Math.max(0.1, prev - 0.1));
-  const handleZoomReset = () => setZoomScale(0.8);
+  const handleZoomIn = () => rfInstance?.zoomIn?.({ duration: 300 });
+  const handleZoomOut = () => rfInstance?.zoomOut?.({ duration: 300 });
+  const handleZoomReset = () => rfInstance?.fitView?.({ duration: 300 });
 
   const handleMouseDown = (e: React.MouseEvent) => {
     // 마우스 가운데(또는 왼쪽) 버튼으로 드래그 시작
@@ -76,21 +77,15 @@ const Page2: React.FC = () => {
     Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
 
   // 2) 2라인씩 묶는 "Line 1-2", "Line 3-4", ... (홀수 남으면 단독)
-  const makeDoubleLines = (count: number, prefix: string = 'Line ') => {
-    const result: string[] = [];
-    let i = 1;
-    while (i <= count) {
-      if (i + 1 <= count) {
-        // 2개씩 묶음
-        result.push(`${prefix}${i}-${i + 1}`);
-        i += 2;
-      } else {
-        // 홀수 남으면 단독
-        result.push(`${prefix}${i}`);
-        i += 1;
-      }
-    }
-    return result;
+  const makeDoubleLines = (count: number, prefix: string = 'Line ') =>
+    Array.from({ length: Math.ceil(count / 2) }, (_, i) => `${prefix}${i * 2 + 1}-${i * 2 + 2 > count ? i * 2 + 1 : i * 2 + 2}`);
+
+  // FG WH Shipping TM 갯수 매핑 (라인 수 1~8 → 1,2,3,3,4,5,6,6)
+  const getShippingTMCount = (lineCount: number) => {
+    const lookup = [0, 1, 2, 3, 3, 4, 5, 6, 6];
+    if (lineCount <= 8) return lookup[lineCount];
+    // 9라인 이상은 대략 0.75배로 반올림
+    return Math.ceil(lineCount * 0.75);
   };
 
   // === (C) 부서 목록 (lineCount 등에 따라 동적 생성) ===
@@ -125,7 +120,7 @@ const Page2: React.FC = () => {
       },
       {
         title: ["Small Tooling"],
-        hasGL: true,   // GL이 있는 부서
+        hasGL: false,   // GL 없음
         tl: ["Small Tooling"],
         tm: [["Last Control"], ["Pallet"], ["Cutting Die/Pad/Mold"]],
       },
@@ -137,14 +132,14 @@ const Page2: React.FC = () => {
       },
       {
         title: ["Sub Material"],
-        hasGL: true,   // GL이 있는 부서
+        hasGL: false,   // GL 없음
         tl: ["Material"],
         tm: [["Incoming"], ["Distribution"]],
       },
       {
         title: ["ACC Market"],
-        hasGL: true,   // GL이 있는 부서
-        tl: ["ACC Market"],
+        hasGL: false,   // GL 없음
+        tl: [],
         tm: makeDoubleLines(config.lineCount).map(line => [line]),
       },
       {
@@ -166,7 +161,7 @@ const Page2: React.FC = () => {
       },
       {
         title: ["Bottom Market"],
-        hasGL: true,
+        hasGL: false,
         tl: ["Bottom Market Incoming"],
         tm: [
           ["Outsole", "Outsole", "Midsole", "Midsole"], // 열 1
@@ -184,11 +179,10 @@ const Page2: React.FC = () => {
         hasGL: true,
         tl: ["FG WH"],
         tm: [
-          // Shipping 카테고리
-          makeSingleLines(config.lineCount, '').map(i => `Shipping Line ${i}`),
-          // Incoming & Setting 카테고리
+          // Shipping 카테고리: 라인 수에 따른 가변 TM
+          Array.from({ length: getShippingTMCount(config.lineCount) }, (_, idx) => `Shipping TM ${idx + 1}`),
+          // Incoming & Setting 카테고리 (라인 수 만큼)
           makeSingleLines(config.lineCount, '').map(i => `Incoming & Setting Line ${i}`),
-          // Report & Metal Detect 카테고리
           ["Report", "Metal Detect"],
         ],
       },
@@ -239,7 +233,7 @@ const Page2: React.FC = () => {
 
   const totalMGL = 1; // 그냥 예시 (MGL은 1명)
   const totalGL = departments.reduce(
-    (acc, dept) => acc + (typeof dept.title === "string" ? 1 : 0),
+    (acc, dept) => acc + (dept.hasGL ? 1 : 0),
     0
   );
   const totalTL = departments.reduce((acc, dept) => acc + dept.tl.length, 0);
@@ -447,9 +441,100 @@ const Page2: React.FC = () => {
   // === (G) 실제 JSX 반환 ===
   return (
     <div className="h-screen w-screen overflow-hidden bg-white relative">
-      <ReactFlowPage2 />
-      {/* 기존 컨트롤 패널, 인원 합계창 등은 그대로 유지 */}
-      {/* ... 이하 기존 코드 ... */}
+      {/* ReactFlow 조직도 */}
+      <ReactFlowPage2 onInit={(inst) => setRfInstance(inst)} />
+
+      {/* 색상 범례 - 오른쪽 상단 */}
+      <div className="fixed right-8 top-8 flex flex-row gap-2 z-50">
+        <div className="bg-gray-50 border border-gray-300 px-4 py-2 rounded-lg shadow-sm">
+          <span className="text-sm font-semibold text-black">Direct</span>
+        </div>
+        <div className="bg-gray-200 border border-gray-400 px-4 py-2 rounded-lg shadow-sm">
+          <span className="text-sm font-semibold text-black">Indirect</span>
+        </div>
+        <div className="bg-gray-400 border border-gray-500 px-4 py-2 rounded-lg shadow-sm">
+          <span className="text-sm font-semibold text-black">OH</span>
+        </div>
+      </div>
+
+      {/* 줌 컨트롤 - 왼쪽 상단 (드롭다운과 겹치지 않도록 아래로) */}
+      <div className="fixed left-8 top-28 flex flex-col gap-2 z-50">
+        <button
+          onClick={handleZoomIn}
+          className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
+        >
+          🔍+
+        </button>
+        <button
+          onClick={handleZoomOut}
+          className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
+        >
+          🔍-
+        </button>
+        <button
+          onClick={handleZoomReset}
+          className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
+        >
+          ↻
+        </button>
+      </div>
+
+      {/* 설정 & 인원 합계 패널 - 오른쪽 하단 */}
+      <div className="fixed right-8 bottom-8 flex flex-row gap-4 z-50 items-end">
+        {/* 라인 수 설정 */}
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 self-end">
+          <div className="flex items-center gap-4">
+            <label className="flex flex-col">
+              <span className="text-sm font-semibold">라인 수</span>
+              <input
+                type="number"
+                className="w-16 border p-1 rounded"
+                value={config.lineCount}
+                min="1"
+                max="8"
+                onChange={(e) => {
+                  const value = Math.max(1, Math.min(8, parseInt(e.target.value) || 1));
+                  updateConfig({ ...config, lineCount: value });
+                }}
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* 인원 합계 */}
+        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 self-end">
+          <div className="space-y-2">
+            {/* GL */}
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">GL:</span>
+              <div className="bg-gray-100 px-3 py-0.5 rounded">
+                {totalGL}
+              </div>
+            </div>
+            {/* TL */}
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">TL:</span>
+              <div className="bg-gray-100 px-3 py-0.5 rounded">
+                {totalTL}
+              </div>
+            </div>
+            {/* TM */}
+            <div className="flex items-center justify-between">
+              <span className="font-semibold">TM:</span>
+              <div className="bg-gray-100 px-3 py-0.5 rounded">
+                {totalTM}
+              </div>
+            </div>
+            {/* 총합 */}
+            <div className="pt-2 mt-2 border-t flex items-center justify-between">
+              <span className="font-semibold">총합:</span>
+              <div className="bg-gray-200 px-3 py-0.5 rounded font-bold">
+                {totalPeople}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

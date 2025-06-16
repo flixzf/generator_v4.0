@@ -17,6 +17,7 @@ import {
   useInteractivePositionBox
 } from "@/components/common/InteractivePositionBox";
 import { ReactFlowPage1 } from "@/components/common/ReactFlowPage1";
+import { ReactFlowInstance } from 'reactflow';
 
 // ---------------------------
 // Config 인터페이스
@@ -242,7 +243,7 @@ const Page1: React.FC = () => {
   } = useInteractivePositionBox();
 
   // 줌(확대/축소)
-  const [zoomScale, setZoomScale] = useState<number>(1); // 초기: 1
+  const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
   // 패닝(이동)
   const [translate, setTranslate] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -485,12 +486,12 @@ const Page1: React.FC = () => {
   };
 
   // 줌(확대/축소)
-  const handleZoomIn = () => setZoomScale((prev) => prev + 0.1);
-  const handleZoomOut = () => setZoomScale((prev) => Math.max(0.1, prev - 0.1));
+  const handleZoomIn = () => rfInstance?.zoomIn?.({ duration: 300 });
+  const handleZoomOut = () => rfInstance?.zoomOut?.({ duration: 300 });
 
-  // "리셋"버튼: 다시 자동 맞춤
+  // "리셋"버튼: ReactFlow fitView 사용
   const handleZoomReset = () => {
-    fitChartToContainer();
+    rfInstance?.fitView?.({ duration: 300 });
   };
 
   // 개선된 드래그 핸들러 (InteractivePositionBox와 충돌 방지)
@@ -575,8 +576,9 @@ const Page1: React.FC = () => {
     const offsetX = (containerRect.width - scaledWidth) / 2;
     const offsetY = (containerRect.height - scaledHeight) / 2;
 
-    setZoomScale(newScale);
-    setTranslate({ x: offsetX, y: offsetY });
+    if (rfInstance) {
+      rfInstance.setViewport({ x: offsetX, y: offsetY, zoom: newScale });
+    }
   };
 
   // 인원 수 계산
@@ -689,7 +691,10 @@ const Page1: React.FC = () => {
             height: '100%',
           }}
         >
-          <ReactFlowPage1 lineModelSelections={lineModelSelections} />
+          <ReactFlowPage1 
+            lineModelSelections={lineModelSelections} 
+            onInit={(inst) => setRfInstance(inst)}
+          />
         </div>
 
         {/* 색상 범례 - 오른쪽 상단 */}
@@ -703,6 +708,28 @@ const Page1: React.FC = () => {
           <div className="bg-gray-400 border border-gray-500 px-4 py-2 rounded-lg shadow-sm">
             <span className="text-sm font-semibold text-black">OH</span>
           </div>
+        </div>
+
+        {/* 줌 컨트롤 - 왼쪽 상단 (드롭다운과 겹치지 않도록 아래로) */}
+        <div className="fixed left-8 top-28 flex flex-col gap-2 z-50">
+          <button
+            onClick={handleZoomIn}
+            className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
+          >
+            🔍+
+          </button>
+          <button
+            onClick={handleZoomOut}
+            className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
+          >
+            🔍-
+          </button>
+          <button
+            onClick={handleZoomReset}
+            className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
+          >
+            ↻
+          </button>
         </div>
 
         {/* 선택된 위치 정보 패널 (왼쪽 상단) */}
@@ -739,11 +766,11 @@ const Page1: React.FC = () => {
                   className="w-20 border p-1 rounded"
                   value={config.lineCount}
                   min="1" 
-                  max="10"
+                  max="8"
                   step="1"
                   onChange={(e) => {
                     const inputValue = e.target.value === '' ? '1' : e.target.value;
-                    const value = Math.max(1, Math.min(10, parseInt(inputValue) || 1));
+                    const value = Math.max(1, Math.min(8, parseInt(inputValue) || 1));
                     updateConfig({ lineCount: value });
                   }}
                   style={{ 

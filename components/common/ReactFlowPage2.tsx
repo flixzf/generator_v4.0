@@ -3,12 +3,12 @@ import ReactFlow, {
   Node,
   Edge,
   Background,
-  Controls,
   MiniMap,
   useNodesState,
   useEdgesState,
   Handle,
   Position,
+  ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
@@ -146,7 +146,11 @@ const nodeTypes = {
   position: CustomPositionNode,
 };
 
-export const ReactFlowPage2: React.FC = () => {
+interface ReactFlowPage2Props {
+  onInit?: (instance: ReactFlowInstance) => void;
+}
+
+export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
   const { config } = useOrgChart();
 
   // 2라인씩 묶는 유틸리티 함수
@@ -168,6 +172,13 @@ export const ReactFlowPage2: React.FC = () => {
   // 일반적인 "Line X" 식
   const makeSingleLines = (count: number, prefix: string = 'Line ') =>
     Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
+
+  // FG WH Shipping TM count mapping
+  const getShippingTMCount = (lineCount: number) => {
+    const lookup = [0, 1, 2, 3, 3, 4, 5, 6, 6];
+    if (lineCount <= 8) return lookup[lineCount];
+    return Math.ceil(lineCount * 0.75);
+  };
 
   // Plant Production TM 계산 함수 (2라인마다 1명 증가)
   const calculatePlantProductionTMs = (lineCount: number) => {
@@ -194,7 +205,7 @@ export const ReactFlowPage2: React.FC = () => {
     },
     {
       title: ["Small Tooling"],
-      hasGL: true,
+      hasGL: false,
       tl: ["Small Tooling"],
       tm: [["Last Control"], ["Pallet"], ["Cutting Die/Pad/Mold"]],
     },
@@ -206,14 +217,14 @@ export const ReactFlowPage2: React.FC = () => {
     },
     {
       title: ["Sub Material"],
-      hasGL: true,
+      hasGL: false,
       tl: ["Material"],
       tm: [["Incoming"], ["Distribution"]],
     },
     {
       title: ["ACC Market"],
-      hasGL: true,
-      tl: ["ACC Market"],
+      hasGL: false,
+      tl: [],
       tm: makeDoubleLines(config.lineCount).map(line => [line]),
     },
     {
@@ -233,7 +244,7 @@ export const ReactFlowPage2: React.FC = () => {
     },
     {
       title: ["Bottom Market"],
-      hasGL: true,
+      hasGL: false,
       tl: ["Bottom Market Incoming"],
       tm: [
         ["Outsole", "Outsole", "Midsole", "Midsole"],
@@ -251,7 +262,7 @@ export const ReactFlowPage2: React.FC = () => {
       hasGL: true,
       tl: ["FG WH"],
       tm: [
-        makeSingleLines(config.lineCount, '').map(i => `Shipping Line ${i}`),
+        Array.from({ length: getShippingTMCount(config.lineCount) }, (_, idx) => `Shipping TM ${idx + 1}`),
         makeSingleLines(config.lineCount, '').map(i => `Incoming & Setting Line ${i}`),
         ["Report", "Metal Detect"],
       ],
@@ -315,7 +326,7 @@ export const ReactFlowPage2: React.FC = () => {
       const titleStr = Array.isArray(dept.title) ? dept.title[0] : dept.title;
       
       // 다중 컬럼 구조인 부서들
-      if (titleStr === "Bottom Market" || titleStr === "FG WH") {
+      if (titleStr === "Bottom Market" || titleStr === "FG WH" || titleStr === "P&L Market") {
         return dept.tm.length * columnSpacing; // 컬럼 수 * 컬럼 간격
       }
       
@@ -456,8 +467,8 @@ export const ReactFlowPage2: React.FC = () => {
         // 연결할 상위 노드 결정 (TL → GL → 부서 박스 순서로 우선순위)
         const tmParentId = tlIds.length > 0 ? tlIds[0] : (glId || deptBoxIds[deptIndex]);
         
-        // Bottom Market과 FG WH는 다중 컬럼 구조로 특별 처리 (수직 체인 연결)
-        if (titleStr === "Bottom Market" || titleStr === "FG WH") {
+        // Bottom Market, FG WH, P&L Market는 다중 컬럼 구조로 특별 처리 (수직 체인 연결)
+        if (titleStr === "Bottom Market" || titleStr === "FG WH" || titleStr === "P&L Market") {
           dept.tm.forEach((tmGroup, groupIndex) => {
             let tmY = tmLevelY; // 고정된 TM 레벨에서 시작
             let previousTmId: string | null = null; // 각 컬럼별 이전 TM ID 추적
@@ -582,9 +593,9 @@ export const ReactFlowPage2: React.FC = () => {
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+        onInit={onInit}
       >
         <MiniMap />
-        <Controls />
         <Background variant={'dots' as any} gap={12} size={1} />
       </ReactFlow>
     </div>

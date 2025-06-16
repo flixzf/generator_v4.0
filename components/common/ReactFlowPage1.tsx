@@ -3,12 +3,13 @@ import ReactFlow, {
   Node,
   Edge,
   Background,
-  Controls,
   MiniMap,
   useNodesState,
   useEdgesState,
   Handle,
   Position,
+  useReactFlow,
+  ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
@@ -23,6 +24,8 @@ const CustomPositionNode = ({ data }: { data: any }) => {
         return '#e5e7eb'; // gray-200
       case 'OH':
         return '#9ca3af'; // gray-400
+      case 'blank':
+        return 'transparent';
       default:
         return '#f9fafb'; // gray-50
     }
@@ -36,6 +39,8 @@ const CustomPositionNode = ({ data }: { data: any }) => {
         return '#4b5563'; // gray-600
       case 'OH':
         return '#374151'; // gray-700
+      case 'blank':
+        return 'transparent';
       default:
         return '#d1d5db'; // gray-300
     }
@@ -46,7 +51,7 @@ const CustomPositionNode = ({ data }: { data: any }) => {
       style={{
         padding: '8px 12px',
         borderRadius: '6px',
-        border: `2px solid ${getBorderColor(data.colorCategory)}`,
+        border: data.colorCategory === 'blank' ? 'none' : `2px solid ${getBorderColor(data.colorCategory)}`,
         backgroundColor: getBackgroundColor(data.colorCategory, data.level),
         width: '140px', // 고정 너비
         minHeight: '60px', // 최소 높이
@@ -54,7 +59,7 @@ const CustomPositionNode = ({ data }: { data: any }) => {
         fontSize: '12px',
         fontWeight: 'bold',
         color: '#1f2937',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        boxShadow: data.colorCategory === 'blank' ? 'none' : '0 2px 4px rgba(0,0,0,0.1)',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
@@ -422,10 +427,12 @@ function getSeparatedProcesses(selectedModel?: any, config?: any) {
 
 interface ReactFlowPage1Props {
   lineModelSelections?: number[];
+  onInit?: (instance: ReactFlowInstance) => void;
 }
 
 export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({ 
-  lineModelSelections = [] 
+  lineModelSelections = [],
+  onInit
 }) => {
   const { config, models } = useOrgChart();
 
@@ -481,11 +488,17 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       
       // VSM 노드 - GL들의 중앙에 배치
       const vsmId = getNextId();
+      // 선택된 모델 정보로 서브타이틀 구성 (모델명 + 총인원수)
+      const modelTotalManpower = selectedModel?.processes?.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0) || 0;
+      const vsmSubtitle = selectedModel
+        ? `${selectedModel.modelName} [${modelTotalManpower}명]`
+        : `Line ${lineIndex + 1}`;
+
       nodes.push({
         id: vsmId,
         type: 'position',
         position: { x: glCenterX, y: levelHeight },
-        data: { title: 'VSM', subtitle: `Line ${lineIndex + 1}`, level: 1, colorCategory: 'OH' },
+        data: { title: 'VSM', subtitle: vsmSubtitle, level: 1, colorCategory: 'OH' },
       });
 
       // MGL → VSM 연결
@@ -593,7 +606,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               type: 'position',
               position: { x: tmX, y: tmY },
               data: { 
-                title: 'TM', 
+                title: 'TM(MH)', 
                 subtitle: tm.manpower ? `${tm.subtitle} [${tm.manpower}명]` : tm.subtitle, 
                 level: 4, 
                 colorCategory: 'direct' 
@@ -642,8 +655,35 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
     if (allSeparatedProcesses.length > 0) {
       const separatedStartX = config.lineCount * lineWidth + 100; // 모든 라인들 오른쪽
-      const glY = levelHeight * 2; // GL 레벨과 동일
-      
+      const vsmY = levelHeight; // VSM 레벨 (기존 라인 VSM과 동일)
+      const glY = levelHeight * 2; // GL 레벨
+
+      // 공통으로 사용할 빈 부서(VSM 레벨) 노드 생성 함수
+      const createBlankDeptNode = (xPos: number) => {
+        const blankId = getNextId();
+        nodes.push({
+          id: blankId,
+          type: 'position',
+          position: { x: xPos, y: vsmY },
+          data: { title: '', subtitle: '', level: 1, colorCategory: 'blank' },
+        });
+        // MGL에서 빈 부서 노드로 연결
+        edges.push({
+          id: `edge-${mglId}-${blankId}`,
+          source: mglId,
+          target: blankId,
+          type: 'smoothstep',
+        });
+        return blankId;
+      };
+
+      // 분리 열별로 빈 VSM 노드 생성 후 ID 저장
+      const blankDeptIds: { [key: string]: string } = {};
+      blankDeptIds['nosewA'] = createBlankDeptNode(separatedStartX);
+      blankDeptIds['nosewB'] = createBlankDeptNode(separatedStartX + glSpacing);
+      blankDeptIds['hfA']    = createBlankDeptNode(separatedStartX + glSpacing * 2);
+      blankDeptIds['hfB']    = createBlankDeptNode(separatedStartX + glSpacing * 3);
+
       // No-sew A 열 (첫 번째 열)
       const nosewAGlId = getNextId();
       const nosewAX = separatedStartX;
@@ -660,10 +700,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         },
       });
 
-      // MGL → No-sew A GL 연결
+      // 빈 부서 노드 → No-sew A GL 연결
       edges.push({
-        id: `edge-${mglId}-${nosewAGlId}`,
-        source: mglId,
+        id: `edge-${blankDeptIds['nosewA']}-${nosewAGlId}`,
+        source: blankDeptIds['nosewA'],
         target: nosewAGlId,
         type: 'smoothstep',
       });
@@ -790,10 +830,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           },
         });
 
-        // MGL → No-sew B GL 연결
+        // 빈 부서 노드 → No-sew B GL 연결
         edges.push({
-          id: `edge-${mglId}-${nosewBGlId}`,
-          source: mglId,
+          id: `edge-${blankDeptIds['nosewB']}-${nosewBGlId}`,
+          source: blankDeptIds['nosewB'],
           target: nosewBGlId,
           type: 'smoothstep',
         });
@@ -947,10 +987,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           });
 
           if (tlIndex === 0) {
-            // 첫 번째 TL은 MGL에서 직접 연결
+            // 첫 번째 TL은 빈 부서 노드에서 연결
             edges.push({
-              id: `edge-${mglId}-${tlId}`,
-              source: mglId,
+              id: `edge-${blankDeptIds['hfA']}-${tlId}`,
+              source: blankDeptIds['hfA'],
               target: tlId,
               type: 'smoothstep',
             });
@@ -1059,10 +1099,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             });
 
             if (tlIndex === 0) {
-              // 첫 번째 TL은 MGL에서 직접 연결
+              // 첫 번째 TL은 빈 부서 노드에서 연결
               edges.push({
-                id: `edge-${mglId}-${tlId}`,
-                source: mglId,
+                id: `edge-${blankDeptIds['hfB']}-${tlId}`,
+                source: blankDeptIds['hfB'],
                 target: tlId,
                 type: 'smoothstep',
               });
@@ -1167,9 +1207,9 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         minZoom={0.1}
         maxZoom={2}
         defaultViewport={{ x: 0, y: 0, zoom: 0.5 }}
+        onInit={onInit}
       >
         <MiniMap />
-        <Controls />
         <Background variant={'dots' as any} gap={12} size={1} />
       </ReactFlow>
     </div>
