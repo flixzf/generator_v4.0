@@ -248,7 +248,7 @@ function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number) 
     // Cutting TM
     if (cuttingProcesses.length > 0) {
       stitchingTMGroup.push({
-        subtitle: "Cutting TM",
+        subtitle: "Cutting Separation",
         manpower: cuttingProcesses.reduce((sum: number, process: any) => sum + (process.manAsy || 0), 0)
       });
     }
@@ -268,7 +268,7 @@ function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number) 
       
       for (let i = 1; i <= miniLineCount; i++) {
         shifts.push({
-          subtitle: miniLineCount > 1 ? `${process.name} TM ${i}` : `${process.name} TM`,
+          subtitle: miniLineCount > 1 ? `${process.name} ${i}` : `${process.name} TM`,
           manpower: process.manStt
         });
       }
@@ -321,7 +321,7 @@ function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number) 
     mainProcesses.push({
       gl: { subtitle: "Stockfit", count: 1 },
       tlGroup: stockfitTLGroup,
-      tmGroup: [{ subtitle: "MH → Assembly" }],
+      tmGroup: [{ subtitle: "Stockfit" }],
       processes: stockfitProcesses,
       showGL: shouldShowStockfitGL // GL 표시 여부 플래그 추가
     });
@@ -355,9 +355,9 @@ function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number) 
     },
     tlGroup: assemblyTLGroup,
     tmGroup: [
-      { subtitle: "MH → Assembly" },
-      { subtitle: "MH → FG WH" },
-      { subtitle: "MH → Last" },
+      { subtitle: "Assembly" },
+      { subtitle: "Assembly Last" },
+      //{ subtitle: "MH → Last" },
     ],
     processes: assemblyProcesses,
     showGL: true // 기본적으로 GL 표시
@@ -458,7 +458,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     
     // 라인 폭도 다시 적절히 조정
     const avgGLCount = 3; // 평균적으로 3개 정도의 GL (Stitching, Stockfit, Assembly)
-    const lineWidth = Math.max(500, avgGLCount * glSpacing + 150);
+    const lineWidth = Math.max(500, avgGLCount * glSpacing + 70); // 부서간 거리
 
     // ===== 추가: 모든 라인 중 최대 TL 개수 계산 (TM 시작 Y 정렬용) =====
     let globalMaxTLCount = 0;
@@ -681,7 +681,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     });
 
     if (allSeparatedProcesses.length > 0) {
-      const separatedStartX = config.lineCount * lineWidth + 100; // 모든 라인들 오른쪽
+      const separatedStartX = config.lineCount * lineWidth + 80; // 모든 라인들 오른쪽 // 사이거리(vsm-떨어진 덩어리)
       const vsmY = levelHeight; // VSM 레벨 (기존 라인 VSM과 동일)
       const glY = levelHeight * 2; // GL 레벨
 

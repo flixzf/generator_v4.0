@@ -712,24 +712,24 @@ const Page1: React.FC = () => {
 
         {/* 줌 컨트롤 - 왼쪽 상단 (드롭다운과 겹치지 않도록 아래로) */}
         <div className="fixed left-8 top-28 flex flex-col gap-2 z-50">
-          <button
-            onClick={handleZoomIn}
+              <button
+                onClick={handleZoomIn}
             className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
-          >
+              >
             🔍+
-          </button>
-          <button
-            onClick={handleZoomOut}
+              </button>
+              <button
+                onClick={handleZoomOut}
             className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
-          >
+              >
             🔍-
-          </button>
-          <button
-            onClick={handleZoomReset}
+              </button>
+              <button
+                onClick={handleZoomReset}
             className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
-          >
+              >
             ↻
-          </button>
+              </button>
         </div>
 
         {/* 선택된 위치 정보 패널 (왼쪽 상단) */}

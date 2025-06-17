@@ -190,6 +190,19 @@ const Page2: React.FC = () => {
   }, [config]);
 
   // === (D) TL, TM 레이아웃 계산 (수직 간격 등) ===
+  // TM 헤더 표시 로직 - 특정 키워드 포함 시 "TM (MH)" 로 표시
+  const getTMTitle = (subtitle: string) => {
+    const keywords = [
+      'material',       // raw material
+      'acc',            // ACC Market, Bottom ACC 등
+      'outsole',        // Outsole
+      'midsole',        // Midsole
+      'box',            // Carton/Inner Box, Box MH etc.
+      'incoming & setting' // Incoming & Setting
+    ];
+    const lower = subtitle.toLowerCase();
+    return keywords.some(k => lower.includes(k)) ? 'TM (MH)' : 'TM';
+  };
   const [dimensions, setDimensions] = useState({
     tlStartY: 0,
     tmStartY: 0,
@@ -300,7 +313,7 @@ const Page2: React.FC = () => {
                         {categoryTMs.map((tm, tmIndex) => (
                           <PositionBox 
                             key={tmIndex} 
-                            title="TM" 
+                            title={getTMTitle(tm)} 
                             subtitle={tm} 
                             level={4} 
                             colorCategory={getColorCategory(title, 'TM', tm)} 
@@ -346,7 +359,7 @@ const Page2: React.FC = () => {
                     {tmData[index]?.map((tmItem, tmIndex) => (
                       <PositionBox 
                         key={tmIndex} 
-                        title="TM" 
+                        title={getTMTitle(tmItem)} 
                         subtitle={tmItem} 
                         level={4} 
                         colorCategory={getColorCategory(title, 'TM', tmItem)} 
@@ -380,7 +393,7 @@ const Page2: React.FC = () => {
                   {tmArr.map((tmItem, tmIndex) => (
                     <PositionBox 
                       key={tmIndex} 
-                      title="TM" 
+                      title={getTMTitle(tmItem)} 
                       subtitle={tmItem} 
                       level={4} 
                       colorCategory={getColorCategory(title, 'TM', tmItem)} 

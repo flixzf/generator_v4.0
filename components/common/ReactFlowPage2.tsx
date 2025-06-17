@@ -213,7 +213,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       title: ["Raw Material"],
       hasGL: false,
       tl: [],
-      tm: [["Material WH → Cutting"], ["Material WH → Cutting"]],
+      tm: [["Raw Material"], ["Raw Material"]],
     },
     {
       title: ["Sub Material"],
@@ -225,7 +225,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       title: ["ACC Market"],
       hasGL: false,
       tl: [],
-      tm: makeDoubleLines(config.lineCount).map(line => [line]),
+      tm: [makeDoubleLines(config.lineCount).map(line => `${line} ACC`)],
     },
     {
       title: "P&L Market",
@@ -235,10 +235,10 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
         [
           "Stencil1",
           "Stencil2",
-          ...makeDoubleLines(config.lineCount).map(line => `${line} Box MH`),
+          ...makeDoubleLines(config.lineCount).map(line => `${line} Box`),
         ],
         [
-          ...makeDoubleLines(config.lineCount).map(line => `${line} Paper MH`),
+          ...makeDoubleLines(config.lineCount).map(line => `${line} Paper`),
         ],
       ],
     },
@@ -255,7 +255,10 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       title: ["Plant Production"],
       hasGL: false,
       tl: [],
-      tm: calculatePlantProductionTMs(config.lineCount),
+      tm: [
+        makeDoubleLines(config.lineCount).map(line => `${line} Input`),
+        makeDoubleLines(config.lineCount).map(line => `${line} Output`)
+      ],
     },
     {
       title: "FG WH",
@@ -264,7 +267,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       tm: [
         Array.from({ length: getShippingTMCount(config.lineCount) }, (_, idx) => `Shipping TM ${idx + 1}`),
         makeSingleLines(config.lineCount, '').map(i => `Incoming & Setting Line ${i}`),
-        ["Report", "Metal Detect"],
+        ["Incoming Scan"],
       ],
     },
   ], [config]);
@@ -305,6 +308,21 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     
     // 나머지는 모두 indirect
     return "indirect";
+  };
+
+  // 특정 TM은 "TM (MH)"로 헤드를 변경
+  const getTMTitle = (subtitle: string) => {
+    const keywords = [
+      'material',
+      'acc',
+      'outsole',
+      'midsole',
+      'box',
+      'paper',
+      'incoming & setting'
+    ];
+    const lower = subtitle.toLowerCase();
+    return keywords.some(k => lower.includes(k)) ? 'TM (MH)' : 'TM';
   };
 
   // 노드와 엣지 생성 (page1.tsx 스타일 적용)
@@ -481,7 +499,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
                 type: 'position',
                 position: { x: tmX, y: tmY },
                 data: { 
-                  title: 'TM', 
+                  title: getTMTitle(tm), 
                   subtitle: tm, 
                   level: 4, 
                   colorCategory: getColorCategory(dept.title, 'TM', tm) 
@@ -527,7 +545,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
                 type: 'position',
                 position: { x: tmX, y: tmY },
                 data: { 
-                  title: 'TM', 
+                  title: getTMTitle(tm), 
                   subtitle: tm, 
                   level: 4, 
                   colorCategory: getColorCategory(dept.title, 'TM', tm) 

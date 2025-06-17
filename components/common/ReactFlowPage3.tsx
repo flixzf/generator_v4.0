@@ -329,7 +329,7 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
         });
       });
 
-      currentX += deptWidth + 6;
+      currentX += deptWidth - 40; // 부서간 거리
     });
 
     return { nodes, edges };
