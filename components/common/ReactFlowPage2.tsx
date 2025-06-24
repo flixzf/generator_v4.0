@@ -59,7 +59,7 @@ const CustomPositionNode = ({ data }: { data: any }) => {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
-          whiteSpace: 'nowrap',
+          whiteSpace: 'pre-line',
         }}
       >
         {/* 입력 핸들 (위쪽) */}
@@ -153,8 +153,8 @@ interface ReactFlowPage2Props {
 export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
   const { config } = useOrgChart();
 
-  // 2라인씩 묶는 유틸리티 함수
-  const makeDoubleLines = (count: number, prefix: string = 'Line ') => {
+  // 2라인씩 묶는 유틸리티 함수 - departments 외부로 이동
+  const makeDoubleLines = useCallback((count: number, prefix: string = 'Line ') => {
     const result: string[] = [];
     let i = 1;
     while (i <= count) {
@@ -167,21 +167,21 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       }
     }
     return result;
-  };
+  }, []);
 
   // 일반적인 "Line X" 식
-  const makeSingleLines = (count: number, prefix: string = 'Line ') =>
-    Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
+  const makeSingleLines = useCallback((count: number, prefix: string = 'Line ') =>
+    Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`), []);
 
   // FG WH Shipping TM count mapping
-  const getShippingTMCount = (lineCount: number) => {
+  const getShippingTMCount = useCallback((lineCount: number) => {
     const lookup = [0, 1, 2, 3, 3, 4, 5, 6, 6];
     if (lineCount <= 8) return lookup[lineCount];
     return Math.ceil(lineCount * 0.75);
-  };
+  }, []);
 
   // Plant Production TM 계산 함수 (2라인마다 1명 증가)
-  const calculatePlantProductionTMs = (lineCount: number) => {
+  const calculatePlantProductionTMs = useCallback((lineCount: number) => {
     const inputCount = Math.ceil(lineCount / 2);
     const outputCount = Math.ceil(lineCount / 2);
     
@@ -189,7 +189,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     const outputTMs = Array.from({ length: outputCount }, (_, i) => `Output ${i + 1}`);
     
     return [inputTMs, outputTMs];
-  };
+  }, []);
 
   // 부서 목록 생성
   const departments = useMemo(() => [
@@ -252,7 +252,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       ],
     },
     {
-      title: ["Plant Production"],
+      title: ["Plant Production\n(Outsole degreasing)"],
       hasGL: false,
       tl: [],
       tm: [
@@ -270,7 +270,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
         ["Incoming Scan"],
       ],
     },
-  ], [config]);
+  ], [config.lineCount, config.gateCount, makeDoubleLines, makeSingleLines, getShippingTMCount]);
 
   // 색상 카테고리 결정 함수
   const getColorCategory = (
@@ -360,26 +360,9 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       const deptWidth = calculateDeptWidth(dept);
       currentX += deptWidth + baseDeptSpacing; // 부서 폭 + 기본 간격
     });
-    
-    // MGL 노드 (최상단 중앙) - "Plant A"로 표시
-    const mglId = getNextId();
-    const totalWidth = currentX;
-    const mglX = totalWidth / 2 - 70; // 중앙 정렬
-    
-    nodes.push({
-      id: mglId,
-      type: 'position',
-      position: { x: mglX, y: 0 },
-      data: { 
-        title: 'MGL', 
-        subtitle: 'Plant A', 
-        level: 1, 
-        colorCategory: 'OH' 
-      },
-    });
 
-    // 부서명 텍스트 노드들 (MGL 아래)
-    const deptNameY = 120; // MGL에서 충분히 떨어진 위치
+    // 부서명 텍스트 노드들 (최상단에 배치)
+    const deptNameY = 0; // 최상단에 배치
     const deptBoxIds: string[] = []; // 부서 박스 ID들 저장
     
     departments.forEach((dept, deptIndex) => {
@@ -402,17 +385,9 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
           isDeptName: true
         },
       });
-      
-      // MGL → 부서 박스 연결
-      edges.push({
-        id: `edge-${mglId}-${deptBoxId}`,
-        source: mglId,
-        target: deptBoxId,
-        type: 'smoothstep',
-      });
     });
 
-    // 고정된 레벨 위치 정의
+    // 고정된 레벨 위치 정의 (부서명 아래부터 시작)
     const glLevelY = deptNameY + 100;
     const tlLevelY = glLevelY + levelHeight;
     const tmLevelY = tlLevelY + levelHeight;
@@ -580,7 +555,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     });
 
     return { nodes, edges };
-  }, [config, departments]);
+  }, [departments]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(createNodesAndEdges.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(createNodesAndEdges.edges);

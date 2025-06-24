@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // 모델별 공정 데이터 타입 추가
 type ProcessData = {
@@ -69,6 +69,8 @@ type OrgChartData = {
   addModel: (model: ModelData) => void;
   removeModel: (modelIndex: number) => void;
   getTotalByPosition: (position: 'MGL' | 'VSM' | 'GL' | 'TL' | 'TM') => number;
+  lineModelSelections: number[];
+  updateLineModelSelection: (lineIndex: number, modelIndex: number) => void;
 };
 
 const OrgChartContext = createContext<OrgChartData | null>(null);
@@ -447,13 +449,12 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       modelName: "Vomero 18",
       styleNo: "HM6803-007",
       processes: [
-        { name: "Cutting No-sew", manStt: 3, manAsy: 6, miniLine: 1, shift: 1 },
-        { name: "Cutting Stitching", manStt: 2.5, manAsy: 5, miniLine: 1, shift: 1 },
-        { name: "HF Welding", manStt: 20, manAsy: 40, miniLine: 1, shift: 2 },
-        { name: "No-sew", manStt: 18, manAsy: 36, miniLine: 1, shift: 2 },
-        { name: "Stitching", manStt: 44, manAsy: 88, miniLine: 2, shift: 1 },
-        { name: "Stockfit", manStt: 70, manAsy: 70, miniLine: 1, shift: 1 },
-        { name: "Assembly", manStt: 85, manAsy: 85, miniLine: 1, shift: 1 },
+        { name: "Cutting", manStt: 5.5, manAsy: 11.0, miniLine: 1, shift: 1 },
+        { name: "HF Welding", manStt: 20.0, manAsy: 40.0, miniLine: 1, shift: 2 },
+        { name: "No-sew", manStt: 18.0, manAsy: 36.0, miniLine: 1, shift: 2 },
+        { name: "Stitching", manStt: 44.0, manAsy: 88.0, miniLine: 2, shift: 1 },
+        { name: "Stockfit", manStt: 70.0, manAsy: 70.0, miniLine: 1, shift: 1 },
+        { name: "Assembly", manStt: 85.0, manAsy: 85.0, miniLine: 1, shift: 1 },
       ]
     },
     {
@@ -461,12 +462,13 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       modelName: "AJ1 Low",
       styleNo: "553558-065",
       processes: [
-        { name: "Cutting Stitching", manStt: 11.3, manAsy: 22.5, miniLine: 1, shift: 1 },
-        { name: "Pre-Folding", manStt: 12, manAsy: 24, miniLine: 1, shift: 1 },
-        { name: "Pre-Stitching", manStt: 24.5, manAsy: 49, miniLine: 2, shift: 1 },
-        { name: "Stitching", manStt: 66, manAsy: 132, miniLine: 2, shift: 1 },
-        { name: "Stockfit", manStt: 21, manAsy: 21, miniLine: 1, shift: 1 },
-        { name: "Assembly", manStt: 94, manAsy: 94, miniLine: 1, shift: 1 },
+        { name: "Cutting", manStt: 11.3, manAsy: 22.5, miniLine: 1, shift: 1 },
+        { name: "Pre-Folding", manStt: 12.0, manAsy: 24.0, miniLine: 1, shift: 1 },
+        { name: "Computer Stitching", manStt: 13.0, manAsy: 26.0, miniLine: 2, shift: 1 },
+        { name: "Pre-Stitching", manStt: 24.5, manAsy: 49.0, miniLine: 2, shift: 1 },
+        { name: "Stitching", manStt: 53.0, manAsy: 106.0, miniLine: 2, shift: 1 },
+        { name: "Stockfit", manStt: 21.0, manAsy: 21.0, miniLine: 1, shift: 1 },
+        { name: "Assembly", manStt: 94.0, manAsy: 94.0, miniLine: 1, shift: 1 },
       ]
     },
     {
@@ -474,11 +476,11 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       modelName: "Air Max 90",
       styleNo: "CN8490-002/100",
       processes: [
-        { name: "Cutting Stitching", manStt: 10, manAsy: 20, miniLine: 1, shift: 1 },
-        { name: "Pre-Stitching", manStt: 30, manAsy: 60, miniLine: 2, shift: 1 },
-        { name: "Stitching", manStt: 61.5, manAsy: 123, miniLine: 2, shift: 1 },
-        { name: "Stockfit", manStt: 26, manAsy: 26, miniLine: 1, shift: 1 },
-        { name: "Assembly", manStt: 74, manAsy: 74, miniLine: 1, shift: 1 },
+        { name: "Cutting", manStt: 10.0, manAsy: 20.0, miniLine: 1, shift: 1 },
+        { name: "Pre-Stitching", manStt: 30.0, manAsy: 60.0, miniLine: 2, shift: 1 },
+        { name: "Stitching", manStt: 61.5, manAsy: 123.0, miniLine: 2, shift: 1 },
+        { name: "Stockfit", manStt: 26.0, manAsy: 26.0, miniLine: 1, shift: 1 },
+        { name: "Assembly", manStt: 74.0, manAsy: 74.0, miniLine: 1, shift: 1 },
       ]
     },
     {
@@ -486,16 +488,19 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       modelName: "CB2",
       styleNo: "DV5457-104",
       processes: [
-        { name: "Cutting Stitching", manStt: 5.5, manAsy: 11, miniLine: 1, shift: 1 },
-        { name: "Prefit Stitching", manStt: 34.5, manAsy: 69, miniLine: 1, shift: 1 },
-        { name: "Stitching", manStt: 45, manAsy: 90, miniLine: 2, shift: 1 },
-        { name: "Assembly", manStt: 107, manAsy: 107, miniLine: 1, shift: 1 },
+        { name: "Cutting", manStt: 5.5, manAsy: 11.0, miniLine: 1, shift: 1 },
+        { name: "Computer Stitching", manStt: 17.0, manAsy: 34.0, miniLine: 1, shift: 1 },
+        { name: "Pre-Stitching", manStt: 17.0, manAsy: 34.0, miniLine: 1, shift: 1 },
+        { name: "Stitching", manStt: 44.0, manAsy: 88.0, miniLine: 2, shift: 1 },
+        { name: "Assembly", manStt: 107.0, manAsy: 107.0, miniLine: 1, shift: 1 },
       ]
     }
   ];
 
   // 모델 상태 관리
   const [models, setModels] = useState<ModelData[]>(initialModels);
+  
+  const [lineModelSelections, setLineModelSelections] = useState<number[]>([]);
 
   // 1. 기본 계산 함수들 먼저 정의
   const calculateTotalTL = (config: Config) => {
@@ -884,6 +889,18 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     return deps;
   });
 
+  // 라인 모델 선택 상태 동기화
+  useEffect(() => {
+    setLineModelSelections(prev => {
+      const newSelections = new Array(config.lineCount).fill(0);
+      // 기존 선택값 유지
+      for(let i = 0; i < Math.min(prev.length, config.lineCount); i++) {
+        newSelections[i] = prev[i];
+      }
+      return newSelections;
+    });
+  }, [config.lineCount]);
+
   // 5. 업데이트 함수들
   const updateDepartment = (
     deptName: keyof OrgChartData['departments'], 
@@ -953,6 +970,14 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     setModels(prev => prev.filter((_, index) => index !== modelIndex));
   };
 
+  const updateLineModelSelection = (lineIndex: number, modelIndex: number) => {
+    setLineModelSelections(prev => {
+      const newSelections = [...prev];
+      newSelections[lineIndex] = modelIndex;
+      return newSelections;
+    });
+  };
+
   return (
     <OrgChartContext.Provider value={{ 
       departments, 
@@ -963,7 +988,9 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       updateModel,
       addModel,
       removeModel,
-      getTotalByPosition
+      getTotalByPosition,
+      lineModelSelections,
+      updateLineModelSelection
     }}>
       {children}
     </OrgChartContext.Provider>

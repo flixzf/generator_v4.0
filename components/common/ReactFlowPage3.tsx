@@ -328,7 +328,7 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
           prev = tmId;
         });
       });
-
+      
       currentX += deptWidth - 40; // 부서간 거리
     });
 
@@ -340,11 +340,11 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState(graph.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(graph.edges);
 
+  // config가 변경될 때마다 노드와 엣지 업데이트
   useEffect(() => {
-    const g = buildGraph(departments);
-    setNodes(g.nodes);
-    setEdges(g.edges);
-  }, [departments, buildGraph, setNodes, setEdges]);
+    setNodes(graph.nodes);
+    setEdges(graph.edges);
+  }, [graph.nodes, graph.edges, setNodes, setEdges]);
 
   return (
     <div style={{ width: '100%', height: '100%' }}>

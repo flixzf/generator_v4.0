@@ -144,223 +144,188 @@ function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number) 
     };
   }
 
-  // 모델의 공정들을 분류
   const allProcesses = selectedModel.processes || [];
-  
-  // 1. Stitching 관련 공정들 (stitching 단어 포함)
-  const stitchingProcesses = allProcesses.filter((process: any) => 
-    process.name.toLowerCase().includes('stitching')
-  );
-  
-  // 2. Stockfit 관련 공정들
-  const stockfitProcesses = allProcesses.filter((process: any) => 
-    process.name.toLowerCase().includes('stockfit')
-  );
-  
-  // 3. Assembly 관련 공정들 (no-sew, hf welding 제외)
-  const assemblyProcesses = allProcesses.filter((process: any) => {
-    const name = process.name.toLowerCase();
-    return !name.includes('stitching') && 
-           !name.includes('stockfit') && 
-           !name.includes('no-sew') && 
-           !name.includes('hf welding') &&
-           !name.includes('cutting');
-  });
-
-  // 메인 공정 그룹 구성
   const mainProcesses = [];
 
-  // 1. Stitching 그룹
-  if (stitchingProcesses.length > 0) {
-    console.log('Stitching processes:', stitchingProcesses); // 디버깅용
-    console.log('Config miniLineCount:', config?.miniLineCount); // 디버깅용
+  // --- 새로운 로직 시작 ---
+
+  // 조건: 'computer stitching', 'pre-folding', 'pre-stitching'이 모두 존재하는지 (AND 조건)
+  const requiredForSplit = ['computer stitching', 'pre-folding', 'pre-stitching'];
+  const hasCuttingPrefitGroup = requiredForSplit.every(requiredName =>
+    allProcesses.some((p: any) => p?.name && p.name.toLowerCase() === requiredName.toLowerCase())
+  );
+
+  if (hasCuttingPrefitGroup) {
+    // --- 그룹 분리 로직 (Jordan 모델 등) ---
     
-    // 예외 공정들 (miniLine/shift에 비례하지 않고 manAsy 사용)
-    const exceptionProcessNames = ['cutting no-sew', 'cutting stitching', 'pre-folding', 'prefit stitching'];
-    const exceptionProcesses = allProcesses.filter((process: any) => 
-      exceptionProcessNames.some(name => 
-        process.name.toLowerCase().includes(name.toLowerCase())
-      )
+    // 1. GL (Cutting-Prefit) 그룹
+    const cuttingPrefitProcessNames = ['cutting', 'pre-folding', 'computer stitching'];
+    const cuttingPrefitProcesses = allProcesses.filter((p: any) =>
+      p?.name && cuttingPrefitProcessNames.includes(p.name.toLowerCase())
     );
     
-    // 일반 stitching 공정들 (예외 공정 제외)
-    const regularStitchingProcesses = stitchingProcesses.filter((process: any) => 
-      !exceptionProcessNames.some(name => 
-        process.name.toLowerCase().includes(name.toLowerCase())
-      )
-    );
-    
-    const stitchingTLGroup = [];
-    
-    // 1. Cutting TL 추가 (cutting no-sew + cutting stitching 합계)
-    const cuttingProcesses = exceptionProcesses.filter((process: any) => 
-      process.name.toLowerCase().includes('cutting')
-    );
-    
-    if (cuttingProcesses.length > 0) {
-      const totalCuttingManpower = cuttingProcesses.reduce((sum: number, process: any) => 
-        sum + (process.manAsy || 0), 0
-      );
-      
-      stitchingTLGroup.push({
-        subtitle: "Cutting",
-        manpower: totalCuttingManpower
-      });
-      
-      console.log('Cutting processes:', cuttingProcesses, 'Total manpower:', totalCuttingManpower);
+    if (cuttingPrefitProcesses.length > 0) {
+        const cuttingPrefitTLGroup = cuttingPrefitProcesses.map((p: any) => ({
+          subtitle: p.name,
+          manpower: p.manAsy
+        }));
+
+        const cuttingPrefitTMGroup = cuttingPrefitProcesses.map((p: any) => ({
+            subtitle: p.name === 'Cutting' ? 'Cutting Separation' : p.name,
+            manpower: p.manAsy
+        }));
+
+        mainProcesses.push({
+          gl: { subtitle: "Cutting-Prefit", count: 1 },
+          tlGroup: cuttingPrefitTLGroup,
+          tmGroup: cuttingPrefitTMGroup,
+          processes: cuttingPrefitProcesses,
+          showGL: true
+        });
     }
     
-    // 2. 기타 예외 공정들 (pre-folding, prefit stitching) - manAsy 사용
-    const otherExceptionProcesses = exceptionProcesses.filter((process: any) => 
-      !process.name.toLowerCase().includes('cutting')
-    );
-    
-    otherExceptionProcesses.forEach((process: any) => {
-      stitchingTLGroup.push({
-        subtitle: process.name,
-        manpower: process.manAsy // manAsy 사용
-      });
+    // 2. GL (Stitching) 그룹 (분리 후 남은 공정)
+    const remainingStitchingProcesses = allProcesses.filter((p: any) => {
+        if (!p?.name) return false;
+        const nameLower = p.name.toLowerCase();
+        return (nameLower.includes('stitching') && !nameLower.includes('computer')) || nameLower.includes('pre-stitching');
     });
     
-    // 3. 일반 stitching 공정들 - config의 miniLineCount 사용
-    const regularStitchingTLs = regularStitchingProcesses.flatMap((process: any) => {
-      const shifts = [];
-      const miniLineCount = config?.miniLineCount || 1; // config 값 사용
-      
-      console.log(`Regular Stitching Process: ${process.name}, using config miniLineCount: ${miniLineCount}, manStt: ${process.manStt}`);
-      
+    if (remainingStitchingProcesses.length > 0) {
+        const stitchingTLGroup: any[] = [];
+        const stitchingTMGroup: any[] = [];
+
+        remainingStitchingProcesses.forEach((process: any) => {
+            const processNameLower = process.name.toLowerCase();
+            if (processNameLower.includes('pre-stitching') || processNameLower.includes('prefit')) {
+                stitchingTLGroup.push({ subtitle: process.name, manpower: process.manAsy });
+                stitchingTMGroup.push({ subtitle: process.name, manpower: process.manAsy });
+            } else if (processNameLower.includes('stitching')) {
+                const miniLineCount = config?.miniLineCount || 1;
       for (let i = 1; i <= miniLineCount; i++) {
-        shifts.push({
-          subtitle: miniLineCount > 1 ? `${process.name} ${i}` : process.name,
-          manpower: process.manStt // man stt 기준으로 각 miniLine별 인원
+                    const subtitle = miniLineCount > 1 ? `${process.name} ${i}` : process.name;
+                    stitchingTLGroup.push({ subtitle, manpower: process.manStt });
+                    stitchingTMGroup.push({ subtitle, manpower: process.manStt });
+                }
+            }
+        });
+        
+        mainProcesses.push({
+          gl: { subtitle: "Stitching", count: 1 },
+          tlGroup: stitchingTLGroup,
+          tmGroup: stitchingTMGroup,
+          processes: remainingStitchingProcesses,
+          showGL: true
         });
       }
-      return shifts;
+
+  } else {
+    // --- 기존의 단일 Stitching 그룹 로직 ---
+    const stitchingGroupProcesses = allProcesses.filter((p: any) => {
+        if (!p?.name) return false;
+        const nameLower = p.name.toLowerCase();
+        return nameLower.includes('stitching') || nameLower.includes('cutting') || nameLower.includes('pre-folding');
     });
     
-    stitchingTLGroup.push(...regularStitchingTLs);
+    if (stitchingGroupProcesses.length > 0) {
+        const stitchingTLGroup: any[] = [];
+        const stitchingTMGroup: any[] = [];
+        const exceptionNames = ['cutting', 'pre-folding', 'computer stitching', 'pre-stitching', 'prefit stitching'];
+        
+        const cuttingProcesses = stitchingGroupProcesses.filter((p: any) => p.name.toLowerCase().includes('cutting'));
+        const otherExceptionProcesses = stitchingGroupProcesses.filter((p: any) => exceptionNames.some(ex => p.name.toLowerCase().includes(ex) && !p.name.toLowerCase().includes('cutting')));
+        const regularStitchingProcesses = stitchingGroupProcesses.filter((p: any) => !exceptionNames.some(ex => p.name.toLowerCase().includes(ex)) && p.name.toLowerCase().includes('stitching'));
 
-    console.log('Generated Stitching TL Group:', stitchingTLGroup); // 디버깅용
-
-    // TM 그룹도 동일한 로직 적용
-    const stitchingTMGroup = [];
-    
-    // Cutting TM
     if (cuttingProcesses.length > 0) {
-      stitchingTMGroup.push({
-        subtitle: "Cutting Separation",
-        manpower: cuttingProcesses.reduce((sum: number, process: any) => sum + (process.manAsy || 0), 0)
-      });
-    }
-    
-    // 기타 예외 공정 TM들
-    otherExceptionProcesses.forEach((process: any) => {
-      stitchingTMGroup.push({
-        subtitle: `${process.name} TM`,
-        manpower: process.manAsy
-      });
-    });
-    
-    // 일반 stitching TM들
-    const regularStitchingTMs = regularStitchingProcesses.flatMap((process: any) => {
-      const shifts = [];
+            const totalCuttingManpower = cuttingProcesses.reduce((sum: any, p: any) => sum + (p.manAsy || 0), 0);
+            stitchingTLGroup.push({ subtitle: "Cutting", manpower: totalCuttingManpower });
+            stitchingTMGroup.push({ subtitle: "Cutting Separation", manpower: totalCuttingManpower });
+        }
+
+        otherExceptionProcesses.forEach((p: any) => {
+            stitchingTLGroup.push({ subtitle: p.name, manpower: p.manAsy });
+            stitchingTMGroup.push({ subtitle: p.name, manpower: p.manAsy });
+        });
+
+        regularStitchingProcesses.forEach((p: any) => {
       const miniLineCount = config?.miniLineCount || 1;
-      
       for (let i = 1; i <= miniLineCount; i++) {
-        shifts.push({
-          subtitle: miniLineCount > 1 ? `${process.name} ${i}` : `${process.name} TM`,
-          manpower: process.manStt
+                const subtitle = miniLineCount > 1 ? `${p.name} ${i}` : p.name;
+                stitchingTLGroup.push({ subtitle, manpower: p.manStt });
+                stitchingTMGroup.push({ subtitle, manpower: p.manStt });
+            }
         });
-      }
-      return shifts;
-    });
-    
-    stitchingTMGroup.push(...regularStitchingTMs);
 
     mainProcesses.push({
       gl: { subtitle: "Stitching", count: 1 },
       tlGroup: stitchingTLGroup,
       tmGroup: stitchingTMGroup,
-      processes: stitchingProcesses,
-      showGL: true // 기본적으로 GL 표시
+          processes: stitchingGroupProcesses,
+          showGL: true
     });
+    }
   }
 
-  // 2. Stockfit 그룹 (stockfitRatio 적용)
+  // --- 공통 로직 (Stockfit, Assembly) ---
+  const stockfitProcesses = allProcesses.filter((process: any) => 
+    process?.name && process.name.toLowerCase().includes('stockfit')
+  );
   if (stockfitProcesses.length > 0) {
-    // stockfitRatio에 따라 GL 표시 여부 결정
     const ratio = config?.stockfitRatio || "2:1";
-    
-    // Stockfit 비율 확인: 이 라인에 GL(Stockfit)이 있어야 하는지 판단
     let shouldShowStockfitGL = true;
-    
     if (ratio === "2:1" && lineIndex !== undefined) {
-      // 2:1 비율: 2라인당 1개 GL (홀수 라인에만 표시)
-      shouldShowStockfitGL = (lineIndex % 2 === 0); // 0, 2, 4... (Line 1, 3, 5...)
+      shouldShowStockfitGL = (lineIndex % 2 === 0);
     }
-    // 1:1 비율은 모든 라인에 GL 표시 (기본값)
-    
-    // 각 stockfit 공정의 miniLine 수만큼 TL 생성 (비율 표시 제거)
     const stockfitTLGroup = stockfitProcesses.flatMap((process: any) => {
       const shifts = [];
       const miniLineCount = process.miniLine || 1;
-      
       for (let i = 1; i <= miniLineCount; i++) {
-        const subtitle = miniLineCount > 1 
-          ? `${process.name} ${i}` // (2:1) 제거
-          : process.name; // (2:1) 제거
-        shifts.push({
-          subtitle,
-          manpower: process.manStt
-        });
+        const subtitle = miniLineCount > 1 ? `${process.name} ${i}` : process.name;
+        shifts.push({ subtitle, manpower: process.manStt });
       }
       return shifts;
     });
-    
-    // Stockfit 그룹을 항상 추가하되, GL 표시 여부만 플래그로 관리
     mainProcesses.push({
       gl: { subtitle: "Stockfit", count: 1 },
       tlGroup: stockfitTLGroup,
       tmGroup: [{ subtitle: "Stockfit" }],
       processes: stockfitProcesses,
-      showGL: shouldShowStockfitGL // GL 표시 여부 플래그 추가
+      showGL: shouldShowStockfitGL
     });
   }
 
-  // 3. Assembly 그룹 (고정 TL + 실제 공정)
+  const assemblyProcesses = allProcesses.filter((process: any) => {
+    if (!process?.name) return false;
+    const name = process.name.toLowerCase();
+    return !name.includes('stitching') && 
+           !name.includes('stockfit') && 
+           !name.includes('no-sew') && 
+           !name.includes('hf welding') &&
+           !name.includes('cutting') &&
+           !name.includes('pre-folding');
+  });
+
   const assemblyTLGroup = [
-    { subtitle: "Input" }, // 인원수 제거
-    { subtitle: "Cementing" }, // 인원수 제거
-    { subtitle: "Finishing" } // 인원수 제거
+    { subtitle: "Input" },
+    { subtitle: "Cementing" },
+    { subtitle: "Finishing" }
   ];
   
-  // 실제 assembly 공정이 있어도 별도 TL로 추가하지 않음 (GL에서 표시)
-  // GL의 subtitle에 실제 assembly 공정 정보 포함
-  let assemblyGLSubtitle = "Assembly";
-  let assemblyGLManpower = 0;
-  
-  if (assemblyProcesses.length > 0) {
-    // 모든 assembly 공정의 manAsy 합계를 GL에 표시
-    assemblyGLManpower = assemblyProcesses.reduce((sum: number, process: any) => 
-      sum + (process.manAsy || 0), 0
-    );
-    
-    console.log('Assembly processes:', assemblyProcesses, 'Total manpower:', assemblyGLManpower);
-  }
+  const assemblyGLManpower = assemblyProcesses.reduce((sum: number, process: any) => 
+      sum + (process.manAsy || 0), 0);
 
   mainProcesses.push({
     gl: { 
-      subtitle: assemblyGLManpower > 0 ? `Assembly [${assemblyGLManpower}명]` : "Assembly",
+      subtitle: assemblyGLManpower > 0 ? `Assembly [${assemblyGLManpower}]` : "Assembly",
       count: 1 
     },
     tlGroup: assemblyTLGroup,
     tmGroup: [
       { subtitle: "Assembly" },
       { subtitle: "Assembly Last" },
-      //{ subtitle: "MH → Last" },
     ],
     processes: assemblyProcesses,
-    showGL: true // 기본적으로 GL 표시
+    showGL: true
   });
 
   return { 
@@ -375,7 +340,7 @@ function getSeparatedProcesses(selectedModel?: any, config?: any) {
 
   const separatedProcessNames = ['cutting no-sew', 'hf welding', 'no-sew'];
   const separatedProcesses = selectedModel.processes.filter((process: any) => 
-    separatedProcessNames.some(name => 
+    process?.name && separatedProcessNames.some(name => 
       process.name.toLowerCase().includes(name.toLowerCase()) || 
       name.toLowerCase().includes(process.name.toLowerCase())
     )
@@ -451,46 +416,22 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
     // 레이아웃 설정
     const levelHeight = 120;
-    const nodeSpacing = 100;
-    
-    // GL 간격을 다시 적절히 설정 (TL이 수직 배치되므로 넓을 필요 없음)
-    const glSpacing = 150; // 고정 간격으로 복원
-    
-    // 라인 폭도 다시 적절히 조정
-    const avgGLCount = 3; // 평균적으로 3개 정도의 GL (Stitching, Stockfit, Assembly)
-    const lineWidth = Math.max(500, avgGLCount * glSpacing + 70); // 부서간 거리
+    const glSpacing = 150;
+    const linePadding = 100; // 라인 간의 추가 간격
 
-    // ===== 추가: 모든 라인 중 최대 TL 개수 계산 (TM 시작 Y 정렬용) =====
-    let globalMaxTLCount = 0;
-    // 1) 메인 공정 TL 최대값 평가
-    Array(config.lineCount).fill(null).forEach((_, gLineIdx) => {
-      const modelIdx = effectiveLineModelSelections[gLineIdx] || 0;
-      const selModel = models[modelIdx];
-      const { mainProcesses } = getProcessGroups(config, selModel, gLineIdx);
-      const localMax = Math.max(...mainProcesses.map(p => p.tlGroup.length));
-      if (localMax > globalMaxTLCount) globalMaxTLCount = localMax;
+    // ===== 1. 각 라인의 너비를 미리 계산 =====
+    const lineWidths = Array(config.lineCount).fill(null).map((_, lineIndex) => {
+        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
+        const selectedModel = models[modelIndex];
+        const { mainProcesses } = getProcessGroups(config, selectedModel, lineIndex);
+        const numGLs = mainProcesses.length > 0 ? mainProcesses.length : 1;
+        return Math.max(300, numGLs * glSpacing) + linePadding;
     });
-    // 2) 분리 공정(노소/HF) TL 개수도 고려 (라인 수 기반)
-    let nosewLineCount = 0;
-    let hfLineCount = 0;
-    Array(config.lineCount).fill(null).forEach((_, gLineIdx) => {
-      const modelIdx = effectiveLineModelSelections[gLineIdx] || 0;
-      const selModel = models[modelIdx];
-      if (!selModel) return;
-      const processes = selModel.processes || [];
-      if (processes.some((p: any) => p.name.toLowerCase().includes('no-sew'))) {
-        nosewLineCount++;
-      }
-      if (processes.some((p: any) => p.name.toLowerCase().includes('hf welding'))) {
-        hfLineCount++;
-      }
-    });
-    globalMaxTLCount = Math.max(globalMaxTLCount, nosewLineCount, hfLineCount);
-    // ================================================================
 
-    // MGL 노드 (중앙 상단)
+    // ===== 2. 전체 너비 계산 및 MGL 노드 생성 =====
+    const totalWidth = lineWidths.reduce((sum, width) => sum + width, 0);
     const mglId = getNextId();
-    const mglX = (config.lineCount * lineWidth) / 2;
+    const mglX = totalWidth / 2 - 70;
     nodes.push({
       id: mglId,
       type: 'position',
@@ -498,26 +439,53 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       data: { title: 'MGL', subtitle: 'Manufacturing General Leader', level: 0, colorCategory: 'OH' },
     });
 
-    // 라인별 VSM, GL, TL, TM 생성
+    // ===== 3. 모든 라인 중 최대 TL 개수 계산 (TM 시작 Y 정렬용) =====
+    let globalMaxTLCount = 0;
+    const linesWithNosew: number[] = [];
+    const linesWithHfWelding: number[] = [];
+    
     Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-      const lineX = lineIndex * lineWidth;
-
-      // 각 라인별로 모델 기반 공정 그룹 계산
       const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
       const selectedModel = models[modelIndex];
-      const { mainProcesses, separatedProcesses } = getProcessGroups(config, selectedModel, lineIndex);
-
-      // GL 노드들을 VSM 아래 수평으로 배치
-      const glStartX = lineX + 50; // GL 시작 X 위치
-      const glY = levelHeight * 2; // VSM 아래 한 레벨
-
-      // VSM을 GL들의 중앙에 위치시키기
-      const glCenterX = glStartX + (mainProcesses.length - 1) * glSpacing / 2;
       
-      // VSM 노드 - GL들의 중앙에 배치
+      if (selectedModel) {
+        const { mainProcesses } = getProcessGroups(config, selectedModel, lineIndex);
+        if (mainProcesses.length > 0) {
+          const tlCounts = mainProcesses.map(p => p.tlGroup.length);
+          const localMax = Math.max(...tlCounts);
+      if (localMax > globalMaxTLCount) globalMaxTLCount = localMax;
+        }
+        
+        // 분리된 공정 체크
+        const processes = selectedModel.processes || [];
+      if (processes.some((p: any) => p?.name && p.name.toLowerCase().includes('no-sew'))) {
+          linesWithNosew.push(lineIndex);
+      }
+      if (processes.some((p: any) => p?.name && p.name.toLowerCase().includes('hf welding'))) {
+          linesWithHfWelding.push(lineIndex);
+        }
+      }
+    });
+    
+    globalMaxTLCount = Math.max(globalMaxTLCount, linesWithNosew.length, linesWithHfWelding.length);
+    
+    // ===== 4. 라인별 노드 생성 =====
+    let cumulativeX = 0;
+    Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
+      const lineX = cumulativeX;
+
+      const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
+      const selectedModel = models[modelIndex];
+      const { mainProcesses } = getProcessGroups(config, selectedModel, lineIndex);
+
+      const glStartX = lineX + (linePadding / 2);
+      const glY = levelHeight * 2;
+
+      const numMainProcesses = mainProcesses.length > 0 ? mainProcesses.length : 1;
+      const glCenterX = glStartX + (numMainProcesses - 1) * glSpacing / 2;
+      
       const vsmId = getNextId();
-      // 선택된 모델 정보로 서브타이틀 구성 (모델명 + 총인원수)
-      const modelTotalManpower = selectedModel?.processes?.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0) || 0;
+      const modelTotalManpower = selectedModel?.processes?.reduce((sum: number, p: any) => sum + (p.manAsy || 0) + (p.manStt || 0), 0) || 0;
       const vsmSubtitle = selectedModel
         ? `${selectedModel.modelName} [${modelTotalManpower}명]`
         : `Line ${lineIndex + 1}`;
@@ -529,7 +497,6 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         data: { title: 'VSM', subtitle: vsmSubtitle, level: 1, colorCategory: 'OH' },
       });
 
-      // MGL → VSM 연결
       edges.push({
         id: `edge-${mglId}-${vsmId}`,
         source: mglId,
@@ -537,17 +504,14 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         type: 'smoothstep',
       });
 
-      // TM 레벨을 모든 라인에서 동일하게 유지하기 위해 글로벌 최대 TL 개수를 사용
       const tmStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40;
 
       mainProcesses.forEach((processGroup, processIndex) => {
-        // GL 노드 - showGL 플래그 확인하여 선택적 생성
         let glId = '';
         const glX = glStartX + processIndex * glSpacing;
         
-        if (processGroup.showGL !== false) { // showGL이 false가 아닌 경우에만 GL 생성
+        if (processGroup.showGL !== false) {
           glId = getNextId();
-          
           nodes.push({
             id: glId,
             type: 'position',
@@ -559,8 +523,6 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               colorCategory: 'direct' 
             },
           });
-
-          // VSM → GL 연결
           edges.push({
             id: `edge-${vsmId}-${glId}`,
             source: vsmId,
@@ -569,12 +531,11 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           });
         }
 
-        // TL 노드들 - GL 아래에 수직으로 배치 (GL이 없어도 위치는 동일)
-        const tlStartY = glY + levelHeight; // GL이 없어도 TL 레벨은 동일하게 유지
+        const tlStartY = glY + levelHeight;
         let lastTlId = '';
         processGroup.tlGroup.forEach((tl: any, tlIndex: number) => {
           const tlId = getNextId();
-          const tlX = glX; // GL과 같은 X 위치 (센터 정렬)
+          const tlX = glX;
           const tlY = tlStartY + (tlIndex * 80);
           
           nodes.push({
@@ -589,27 +550,15 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             },
           });
 
-          // 연결 로직: GL이 있으면 GL → TL, 없으면 VSM → TL
           if (tlIndex === 0) {
-            if (processGroup.showGL !== false && glId) {
-              // GL → 첫 번째 TL 연결
+            const sourceId = (processGroup.showGL !== false && glId) ? glId : vsmId;
               edges.push({
-                id: `edge-${glId}-${tlId}`,
-                source: glId,
+              id: `edge-${sourceId}-${tlId}`,
+              source: sourceId,
                 target: tlId,
                 type: 'smoothstep',
               });
             } else {
-              // VSM → 첫 번째 TL 직접 연결 (GL이 없는 경우)
-              edges.push({
-                id: `edge-${vsmId}-${tlId}`,
-                source: vsmId,
-                target: tlId,
-                type: 'smoothstep',
-              });
-            }
-          } else {
-            // 나머지 TL들은 이전 TL과 연결
             edges.push({
               id: `edge-${lastTlId}-${tlId}`,
               source: lastTlId,
@@ -620,13 +569,12 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           lastTlId = tlId;
         });
 
-        // TM 노드들 - 통일된 TM 레벨에서 시작 (적절한 간격)
         if (processGroup.tmGroup && processGroup.tmGroup.length > 0) {
           let lastTmId = '';
           processGroup.tmGroup.forEach((tm: any, tmIndex: number) => {
             const tmId = getNextId();
-            const tmX = glX; // GL과 같은 X 위치 (센터 정렬)
-            const tmY = tmStartY + (tmIndex * 80); // 글로벌 TM 시작 Y 사용하여 모든 열에서 TM(MH) 정렬
+            const tmX = glX;
+            const tmY = tmStartY + (tmIndex * 80);
             
             nodes.push({
               id: tmId,
@@ -640,508 +588,178 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               },
             });
 
-            // 마지막 TL → 첫 번째 TM 연결
             if (tmIndex === 0 && lastTlId) {
-              edges.push({
-                id: `edge-${lastTlId}-${tmId}`,
-                source: lastTlId,
-                target: tmId,
-                type: 'smoothstep',
-              });
-            } else if (tmIndex > 0) {
-              // 나머지 TM들은 이전 TM과 연결
-              edges.push({
-                id: `edge-${lastTmId}-${tmId}`,
-                source: lastTmId,
-                target: tmId,
-                type: 'smoothstep',
-              });
-            }
-            lastTmId = tmId;
-          });
-        }
-      });
-    });
-
-    // 모든 라인의 분리된 공정들을 모아서 오른쪽에 정리
-    const allSeparatedProcesses: any[] = [];
-    
-    // 각 라인의 분리된 공정들 수집
-    Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-      const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-      const selectedModel = models[modelIndex];
-      const { separatedProcesses } = getProcessGroups(config, selectedModel, lineIndex);
-      
-      separatedProcesses.forEach((process: any) => {
-        allSeparatedProcesses.push({
-          ...process,
-          lineIndex: lineIndex + 1
-        });
-      });
-    });
-
-    if (allSeparatedProcesses.length > 0) {
-      const separatedStartX = config.lineCount * lineWidth + 80; // 모든 라인들 오른쪽 // 사이거리(vsm-떨어진 덩어리)
-      const vsmY = levelHeight; // VSM 레벨 (기존 라인 VSM과 동일)
-      const glY = levelHeight * 2; // GL 레벨
-
-      // 공통으로 사용할 빈 부서(VSM 레벨) 노드 생성 함수
-      const createBlankDeptNode = (xPos: number) => {
-        const blankId = getNextId();
-        nodes.push({
-          id: blankId,
-          type: 'position',
-          position: { x: xPos, y: vsmY },
-          data: { title: '', subtitle: '', level: 1, colorCategory: 'blank' },
-        });
-        // MGL에서 빈 부서 노드로 연결
-        edges.push({
-          id: `edge-${mglId}-${blankId}`,
-          source: mglId,
-          target: blankId,
-          type: 'smoothstep',
-        });
-        return blankId;
-      };
-
-      // 분리 열별로 빈 VSM 노드 생성 후 ID 저장
-      const blankDeptIds: { [key: string]: string } = {};
-      blankDeptIds['nosewA'] = createBlankDeptNode(separatedStartX);
-      blankDeptIds['nosewB'] = createBlankDeptNode(separatedStartX + glSpacing);
-      blankDeptIds['hfA']    = createBlankDeptNode(separatedStartX + glSpacing * 2);
-      blankDeptIds['hfB']    = createBlankDeptNode(separatedStartX + glSpacing * 3);
-
-      // === No-sew용 GL 표시 개수 계산 ===
-      let noSewLineCount = 0;
-      Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-        const selectedModel = models[modelIndex];
-        if (selectedModel?.processes?.some((p: any) => p.name.toLowerCase().includes('no-sew'))) {
-          noSewLineCount++;
-        }
-      });
-      // 총 No-sew TL 수 = 라인 수 × 시프트 수
-      const totalNoSewTL = noSewLineCount * config.shiftsCount;
-      // GL은 TL이 4개 단위로 꽉 찰 때마다 1명 증가 (4 미만이면 0)
-      const noSewGlNeeded = Math.floor(totalNoSewTL / 4);
-
-      // No-sew A GL (shift A) : 무조건 첫 번째로 배치, 필요 GL 수가 1 이상일 때만
-      let nosewAGlId = '';
-      if (noSewGlNeeded >= 1) {
-        nosewAGlId = getNextId();
-        nodes.push({
-          id: nosewAGlId,
-          type: 'position',
-          position: { x: separatedStartX, y: glY },
-          data: {
-            title: 'GL',
-            subtitle: 'No-sew A',
-            level: 2,
-            colorCategory: 'direct',
-          },
-        });
-
-        edges.push({
-          id: `edge-${blankDeptIds['nosewA']}-${nosewAGlId}`,
-          source: blankDeptIds['nosewA'],
-          target: nosewAGlId,
-          type: 'smoothstep',
-        });
-      }
-
-      // No-sew A TL들 (해당 공정이 있는 라인만)
-      let lastTlId = '';
-      let tlIndex = 0;
-      Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-        // 해당 라인의 No-sew 인원수 가져오기
-        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-        const selectedModel = models[modelIndex];
-        const nosewProcess = selectedModel?.processes?.find((p: any) => 
-          p.name.toLowerCase().includes('no-sew') && !p.name.toLowerCase().includes('cutting')
-        );
-        
-        // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-        const totalManpower = nosewProcess?.manAsy || 0;
-        const shiftsCount = nosewProcess?.shift || 1;
-        const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-        
-        // No-sew 공정이 있는 라인만 TL 생성
-        if (totalManpower > 0) {
-          const tlId = getNextId();
-          const tlY = glY + levelHeight + (tlIndex * 80);
-          
-          nodes.push({
-            id: tlId,
-            type: 'position',
-            position: { x: separatedStartX, y: tlY },
-            data: { 
-              title: 'TL', 
-              subtitle: `[${manpowerPerShift}명] / Line ${lineIndex + 1} / No-sew A`, 
-              level: 3, 
-              colorCategory: 'direct' 
-            },
-          });
-
-          if (tlIndex === 0) {
-            if (nosewAGlId) {
-              // GL이 있는 경우 GL → TL
-              edges.push({
-                id: `edge-${nosewAGlId}-${tlId}`,
-                source: nosewAGlId,
-                target: tlId,
-                type: 'smoothstep',
-              });
-            } else {
-              // GL이 없는 경우 BLANK DEPT → TL
-              edges.push({
-                id: `edge-${blankDeptIds['nosewA']}-${tlId}`,
-                source: blankDeptIds['nosewA'],
-                target: tlId,
-                type: 'smoothstep',
-              });
-            }
-          } else {
-            edges.push({
-              id: `edge-${lastTlId}-${tlId}`,
-              source: lastTlId,
-              target: tlId,
-              type: 'smoothstep',
-            });
-          }
-          lastTlId = tlId;
-          tlIndex++;
-        }
-      });
-
-      // No-sew A TM들 (해당 공정이 있는 라인만)
-      let lastTmId = '';
-      const tmStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40; // 글로벌 TM 시작 Y 적용
-      let tmIndex = 0;
-      Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-        // 해당 라인의 No-sew 인원수 확인
-        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-        const selectedModel = models[modelIndex];
-        const nosewProcess = selectedModel?.processes?.find((p: any) => 
-          p.name.toLowerCase().includes('no-sew')
-        );
-        const manpower = nosewProcess?.manAsy || 0;
-        
-        // No-sew 공정이 있는 라인만 TM 생성
-        if (manpower > 0) {
-          const tmId = getNextId();
-          const tmY = tmStartY + (tmIndex * 80);
-          
-          nodes.push({
-            id: tmId,
-            type: 'position',
-            position: { x: separatedStartX, y: tmY },
-            data: { 
-              title: 'TM(MH)', 
-              subtitle: `Line ${lineIndex + 1} Cutting / → No-sew A`, 
-              level: 4, 
-              colorCategory: 'direct' 
-            },
-          });
-
-          if (tmIndex === 0 && lastTlId) {
-            edges.push({
-              id: `edge-${lastTlId}-${tmId}`,
-              source: lastTlId,
-              target: tmId,
-              type: 'smoothstep',
-            });
-          } else if (tmIndex > 0) {
-            edges.push({
-              id: `edge-${lastTmId}-${tmId}`,
-              source: lastTmId,
-              target: tmId,
-              type: 'smoothstep',
-            });
-          }
-          lastTmId = tmId;
-          tmIndex++;
-        }
-      });
-
-      // No-sew B 열 (두 번째 열) - 쉬프트수가 2 이상이고 GL이 2개 이상 필요할 때만 GL 표시
-      let nosewBGlId = '';
-      let nosewBX = 0;
-      if (config.shiftsCount >= 2) {
-        nosewBX = separatedStartX + glSpacing;
-
-        if (noSewGlNeeded >= 2) {
-          nosewBGlId = getNextId();
-          nodes.push({
-            id: nosewBGlId,
-            type: 'position',
-            position: { x: nosewBX, y: glY },
-            data: { 
-              title: 'GL', 
-              subtitle: 'No-sew B', 
-              level: 2, 
-              colorCategory: 'direct' 
-            },
-          });
-
-          // 빈 부서 노드 → No-sew B GL 연결
-          edges.push({
-            id: `edge-${blankDeptIds['nosewB']}-${nosewBGlId}`,
-            source: blankDeptIds['nosewB'],
-            target: nosewBGlId,
-            type: 'smoothstep',
-          });
-        }
-      }
-
-      // No-sew B TL들 (쉬프트수가 2 이상이고 해당 공정이 있는 라인만)
-      if (config.shiftsCount >= 2) {
-        lastTlId = '';
-        tlIndex = 0;
-        Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-          // 해당 라인의 No-sew 인원수 가져오기
-          const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-          const selectedModel = models[modelIndex];
-          const nosewProcess = selectedModel?.processes?.find((p: any) => 
-            p.name.toLowerCase().includes('no-sew') && !p.name.toLowerCase().includes('cutting')
-          );
-          
-          // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-          const totalManpower = nosewProcess?.manAsy || 0;
-          const shiftsCount = nosewProcess?.shift || 1;
-          const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-          
-          // No-sew 공정이 있는 라인만 TL 생성
-          if (totalManpower > 0) {
-            const tlId = getNextId();
-            const tlY = glY + levelHeight + (tlIndex * 80);
-            
-            nodes.push({
-              id: tlId,
-              type: 'position',
-              position: { x: nosewBX, y: tlY },
-              data: { 
-                title: 'TL', 
-                subtitle: `[${manpowerPerShift}명] / Line ${lineIndex + 1} / No-sew B`, 
-                level: 3, 
-                colorCategory: 'direct' 
-              },
-            });
-
-            if (tlIndex === 0) {
-              if (nosewBGlId) {
-                edges.push({
-                  id: `edge-${nosewBGlId}-${tlId}`,
-                  source: nosewBGlId,
-                  target: tlId,
-                  type: 'smoothstep',
-                });
-              } else {
-                edges.push({
-                  id: `edge-${blankDeptIds['nosewB']}-${tlId}`,
-                  source: blankDeptIds['nosewB'],
-                  target: tlId,
-                  type: 'smoothstep',
-                });
-              }
-            } else {
-              edges.push({
-                id: `edge-${lastTlId}-${tlId}`,
-                source: lastTlId,
-                target: tlId,
-                type: 'smoothstep',
-              });
-            }
-            lastTlId = tlId;
-            tlIndex++;
-          }
-        });
-      }
-
-      // No-sew B TM들 (쉬프트수가 2 이상이고 해당 공정이 있는 라인만)
-      if (config.shiftsCount >= 2) {
-        const tmStartYB = glY + levelHeight + (globalMaxTLCount * 80) + 40;
-        lastTmId = '';
-        let tmIndexB = 0;
-        Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-          const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-          const selectedModel = models[modelIndex];
-          const nosewProcess = selectedModel?.processes?.find((p: any) =>
-            p.name.toLowerCase().includes('no-sew') && !p.name.toLowerCase().includes('cutting')
-          );
-
-          if (nosewProcess?.manAsy) {
-            const tmId = getNextId();
-            const tmY = tmStartYB + (tmIndexB * 80);
-            nodes.push({
-              id: tmId,
-              type: 'position',
-              position: { x: nosewBX, y: tmY },
-              data: {
-                title: 'TM(MH)',
-                subtitle: `Line ${lineIndex + 1} Cutting / → No-sew B`,
-                level: 4,
-                colorCategory: 'direct',
-              },
-            });
-
-            if (tmIndexB === 0 && lastTlId) {
               edges.push({ id: `edge-${lastTlId}-${tmId}`, source: lastTlId, target: tmId, type: 'smoothstep' });
-            } else if (tmIndexB > 0) {
+            } else if (tmIndex > 0) {
               edges.push({ id: `edge-${lastTmId}-${tmId}`, source: lastTmId, target: tmId, type: 'smoothstep' });
             }
             lastTmId = tmId;
-            tmIndexB++;
-          }
-        });
-      }
-
-      // HF Welding A 열 (세 번째 열, GL 없음)
-      const hfAX = separatedStartX + (glSpacing * 2);
-      
-      // HF Welding A TL들 (해당 공정이 있는 라인만)
-      lastTlId = '';
-      tlIndex = 0;
-      Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-        // 해당 라인의 HF Welding 인원수 가져오기
-        const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-        const selectedModel = models[modelIndex];
-        const hfProcess = selectedModel?.processes?.find((p: any) => 
-          p.name.toLowerCase().includes('hf welding')
-        );
-        
-        // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-        const totalManpower = hfProcess?.manAsy || 0;
-        const shiftsCount = hfProcess?.shift || 1;
-        const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-        
-        // HF Welding 공정이 있는 라인만 TL 생성
-        if (totalManpower > 0) {
-          const tlId = getNextId();
-          const tlY = glY + levelHeight + (tlIndex * 80);
-          
-          nodes.push({
-            id: tlId,
-            type: 'position',
-            position: { x: hfAX, y: tlY },
-            data: { 
-              title: 'TL', 
-              subtitle: `[${manpowerPerShift}명] / Line ${lineIndex + 1} / HF Welding A`, 
-              level: 3, 
-              colorCategory: 'direct' 
-            },
           });
-
-          if (tlIndex === 0) {
-            // 첫 번째 TL은 빈 부서 노드에서 연결
-            edges.push({
-              id: `edge-${blankDeptIds['hfA']}-${tlId}`,
-              source: blankDeptIds['hfA'],
-              target: tlId,
-              type: 'smoothstep',
-            });
-          } else {
-            edges.push({
-              id: `edge-${lastTlId}-${tlId}`,
-              source: lastTlId,
-              target: tlId,
-              type: 'smoothstep',
-            });
-          }
-          lastTlId = tlId;
-          tlIndex++;
         }
       });
+       cumulativeX += lineWidths[lineIndex];
+    });
 
-      // HF Welding A TM들 : TL 2개당 TM 1개
-      const tmStartYHFA = glY + levelHeight + (globalMaxTLCount * 80) + 40;
-      const hfATmCount = Math.ceil(tlIndex / 2);
-      lastTmId = '';
-      for (let i = 0; i < hfATmCount; i++) {
-        const tmId = getNextId();
-        const tmY = tmStartYHFA + (i * 80);
-        nodes.push({ id: tmId, type: 'position', position: { x: hfAX, y: tmY }, data: { title: 'TM(MH)', subtitle: `HF Welding A TM ${i+1}`, level: 4, colorCategory: 'direct' }, });
-        if (i === 0 && lastTlId) {
-          edges.push({ id: `edge-${lastTlId}-${tmId}`, source: lastTlId, target: tmId, type: 'smoothstep' });
-        } else if (i > 0) {
-          edges.push({ id: `edge-${lastTmId}-${tmId}`, source: lastTmId, target: tmId, type: 'smoothstep' });
-        }
-        lastTmId = tmId;
-      }
+    // ===== 5. 분리된 공정 노드 생성 =====
+    const separatedStartX = cumulativeX + 160;
 
-      // HF Welding B 열 (네 번째 열, GL 없음) - 쉬프트수가 2 이상일 때만
-      if (config.shiftsCount >= 2) {
-        const hfBX = separatedStartX + (glSpacing * 3);
+    const vsmY = levelHeight;
+    const glY = levelHeight * 2;
+    const tlStartY = levelHeight * 3;
+    const globalTMStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40;
+
+    let currentSeparatedX = separatedStartX;
+    const topConnectionNodeId = mglId;
+
+    if (linesWithNosew.length > 0) {
+        const shiftCols = config.shiftsCount || 1;
+        const totalTLCount = linesWithNosew.length * shiftCols;
+        const requiredGLCount = Math.floor(totalTLCount / 4); // 4의 배수일 때만 GL 생성
+        const totalCols = Math.max(shiftCols, 2); // 최소 2개 열 (빈 박스 보장)
         
-        // HF Welding B TL들 (해당 공정이 있는 라인만)
-        lastTlId = '';
-        tlIndex = 0;
-        Array(config.lineCount).fill(null).forEach((_, lineIndex) => {
-          // 해당 라인의 HF Welding 인원수 가져오기
-          const modelIndex = effectiveLineModelSelections[lineIndex] || 0;
-          const selectedModel = models[modelIndex];
-          const hfProcess = selectedModel?.processes?.find((p: any) => 
-            p.name.toLowerCase().includes('hf welding')
-          );
-          
-          // manAsy를 시프트 수로 나누어 시프트당 인원 계산
-          const totalManpower = hfProcess?.manAsy || 0;
-          const shiftsCount = hfProcess?.shift || 1;
-          const manpowerPerShift = Math.ceil(totalManpower / shiftsCount);
-          
-          // HF Welding 공정이 있는 라인만 TL 생성
-          if (totalManpower > 0) {
-            const tlId = getNextId();
-            const tlY = glY + levelHeight + (tlIndex * 80);
-            
-            nodes.push({
-              id: tlId,
-              type: 'position',
-              position: { x: hfBX, y: tlY },
-              data: { 
-                title: 'TL', 
-                subtitle: `[${manpowerPerShift}명] / Line ${lineIndex + 1} / HF Welding B`, 
-                level: 3, 
-                colorCategory: 'direct' 
-              },
-            });
+        const colXs = Array.from({ length: totalCols }, (_, i) => currentSeparatedX + i * glSpacing);
+        const glIds: string[] = [];
 
-            if (tlIndex === 0) {
-              // 첫 번째 TL은 빈 부서 노드에서 연결
-              edges.push({
-                id: `edge-${blankDeptIds['hfB']}-${tlId}`,
-                source: blankDeptIds['hfB'],
-                target: tlId,
-                type: 'smoothstep',
-              });
+        // GL과 빈 박스 생성
+        colXs.forEach((xPos, idx) => {
+            const nodeId = getNextId();
+            
+            if (idx < requiredGLCount) {
+                // 실제 GL 노드
+                glIds.push(nodeId);
+                const glSubtitle = requiredGLCount === 1 ? 'No-sew' : `No-sew ${String.fromCharCode(65 + idx)}`; // A, B, C, D...
+                nodes.push({ 
+                    id: nodeId, 
+                    type: 'position', 
+                    position: { x: xPos, y: glY }, 
+                    data: { title: 'GL', subtitle: glSubtitle, level: 2, colorCategory: 'direct' } 
+                });
             } else {
-              edges.push({
-                id: `edge-${lastTlId}-${tlId}`,
-                source: lastTlId,
-                target: tlId,
-                type: 'smoothstep',
-              });
+                // 빈 박스
+                glIds.push(nodeId);
+                nodes.push({ 
+                    id: nodeId, 
+                    type: 'position', 
+                    position: { x: xPos, y: glY }, 
+                    data: { title: '', subtitle: '', colorCategory: 'blank' } 
+                });
             }
-            lastTlId = tlId;
-            tlIndex++;
-          }
         });
 
-        // HF Welding B TM들 : TL 2개당 TM 1개
-        const tmStartYHFB = glY + levelHeight + (globalMaxTLCount * 80) + 40;
-        const hfBTmCount = Math.ceil(tlIndex / 2);
-        lastTmId = '';
-        for (let i = 0; i < hfBTmCount; i++) {
-          const tmId = getNextId();
-          const tmY = tmStartYHFB + (i * 80);
-          nodes.push({ id: tmId, type: 'position', position: { x: hfBX, y: tmY }, data: { title: 'TM(MH)', subtitle: `HF Welding B TM ${i+1}`, level: 4, colorCategory: 'direct' } });
-          if (i === 0 && lastTlId) {
-            edges.push({ id: `edge-${lastTlId}-${tmId}`, source: lastTlId, target: tmId, type: 'smoothstep' });
-          } else if (i > 0) {
-            edges.push({ id: `edge-${lastTmId}-${tmId}`, source: lastTmId, target: tmId, type: 'smoothstep' });
-          }
-          lastTmId = tmId;
-        }
-      }
+        const blankVSMId = getNextId();
+        nodes.push({id: blankVSMId, type: 'position', position: { x: currentSeparatedX + (totalCols-1)*glSpacing/2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' }});
+        edges.push({ id: `edge-${topConnectionNodeId}-${blankVSMId}`, source: topConnectionNodeId, target: blankVSMId, type: 'smoothstep' });
+        glIds.forEach(glId => edges.push({ id: `edge-${blankVSMId}-${glId}`, source: blankVSMId, target: glId, type: 'smoothstep' }));
+
+        // TL 생성 및 연결 (수직 체인 연결)
+        const columnTLHistory: { [colIndex: number]: string[] } = {}; // 각 열의 TL ID 히스토리
+        
+        let tlCounter = 0;
+        linesWithNosew.forEach((lineIndex, i) => {
+            const yOffset = i * 80;
+            const selectedModel = models[effectiveLineModelSelections[lineIndex]];
+            const manpower = selectedModel?.processes?.find(p=>p.name.toLowerCase().includes('no-sew'))?.manStt || 18;
+
+            for (let shiftIdx = 0; shiftIdx < shiftCols; shiftIdx++) {
+                const colIndex = tlCounter % totalCols; // 순환 배치
+                const xPos = colXs[colIndex];
+                
+                const tlId = getNextId();
+                const shiftSuffix = shiftCols === 1 ? '' : ` ${shiftIdx === 0 ? 'A' : 'B'}`;
+                nodes.push({ 
+                    id: tlId, 
+                    type: 'position', 
+                    position: { x: xPos, y: tlStartY + yOffset }, 
+                    data: { 
+                        title: 'TL', 
+                        subtitle: `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 
+                        manpower: manpower, 
+                        level: 3, 
+                        colorCategory: 'direct' 
+                    } 
+                });
+                
+                // 연결: 첫 번째 TL은 GL/빈박스에서, 나머지는 바로 위 TL에서
+                if (!columnTLHistory[colIndex] || columnTLHistory[colIndex].length === 0) {
+                    // 각 열의 첫 번째 TL은 GL/빈박스에서 연결
+                    const targetGLId = glIds[colIndex];
+                    edges.push({ id: `edge-${targetGLId}-${tlId}`, source: targetGLId, target: tlId, type: 'smoothstep' });
+                    columnTLHistory[colIndex] = [tlId];
+                } else {
+                    // 나머지 TL은 바로 위 TL에서 연결
+                    const previousTLId = columnTLHistory[colIndex][columnTLHistory[colIndex].length - 1];
+                    edges.push({ id: `edge-${previousTLId}-${tlId}`, source: previousTLId, target: tlId, type: 'smoothstep' });
+                    columnTLHistory[colIndex].push(tlId);
+                }
+
+                const tmId = getNextId();
+                nodes.push({ 
+                    id: tmId, 
+                    type: 'position', 
+                    position: { x: xPos, y: globalTMStartY + yOffset }, 
+                    data: { 
+                        title: 'TM(MH)', 
+                        subtitle: `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 
+                        level: 4, 
+                        colorCategory: 'direct' 
+                    } 
+                });
+                edges.push({ id: `edge-${tlId}-${tmId}`, source: tlId, target: tmId, type: 'smoothstep' });
+                
+                tlCounter++;
+            }
+        });
+
+        currentSeparatedX += glSpacing * totalCols;
+    }
+
+    if (linesWithHfWelding.length > 0) {
+        currentSeparatedX += glSpacing; // gap after nosew
+
+        const hfCols = config.shiftsCount || 1;
+        const hfXs = Array.from({length: hfCols}, (_, i)=> currentSeparatedX + i*glSpacing);
+
+        const blankVSMId = getNextId();
+        nodes.push({id: blankVSMId, type: 'position', position: { x: currentSeparatedX + (hfCols-1)*glSpacing/2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' }});
+        edges.push({ id: `edge-${topConnectionNodeId}-${blankVSMId}`, source: topConnectionNodeId, target: blankVSMId, type: 'smoothstep' });
+        
+        const colTopTlIds: (string | null)[] = Array(hfCols).fill(null);
+        let colLastNodeIds: (string | null)[] = Array(hfCols).fill(null);
+
+        linesWithHfWelding.forEach((lineIndex, i) => {
+            const yOffset = i * 80;
+            const selectedModel = models[effectiveLineModelSelections[lineIndex]];
+            const manpower = selectedModel?.processes?.find(p=>p.name.toLowerCase().includes('hf welding'))?.manStt || 20;
+
+            hfXs.forEach((xPos, colIdx) => {
+            const tlId = getNextId();
+                nodes.push({ id: tlId, type: 'position', position: { x: xPos, y: tlStartY + yOffset }, data: { title: 'TL', subtitle: `Line ${lineIndex + 1} HF Welding${hfCols===1?'': colIdx===0?' A':' B'}`, manpower: manpower, level: 3, colorCategory: 'direct' } });
+                
+                if (i === 0) {
+                    edges.push({ id: `edge-${blankVSMId}-${tlId}`, source: blankVSMId, target: tlId, type: 'smoothstep' });
+                    colTopTlIds[colIdx] = tlId;
+              } else {
+                    const aboveTlId = nodes.find(n => n.position.x === xPos && n.position.y === tlStartY + (i - 1) * 80)?.id;
+                    if(aboveTlId) edges.push({ id: `edge-${aboveTlId}-${tlId}`, source: aboveTlId, target: tlId, type: 'smoothstep' });
+                }
+                colLastNodeIds[colIdx] = tlId;
+            });
+        });
+
+        // 2개 라인당 1 TM 생성 (HF)
+        const hfTmGroups = Math.ceil(linesWithHfWelding.length / 2);
+        hfXs.forEach((xPos, colIdx) => {
+            for (let g = 0; g < hfTmGroups; g++) {
+            const tmId = getNextId();
+                nodes.push({ id: tmId, type: 'position', position: { x: xPos, y: globalTMStartY + g*80 }, data: { title: 'TM(MH)', subtitle: `HF Welding${hfCols===1?'': colIdx===0?' A':' B'} ${g+1}`, level: 4, colorCategory: 'direct' } });
+                
+                const sourceNodeId = colLastNodeIds[colIdx] || blankVSMId;
+                edges.push({ id: `edge-${sourceNodeId}-${tmId}`, source: sourceNodeId, target: tmId, type: 'smoothstep' });
+                colLastNodeIds[colIdx] = tmId;
+            }
+        });
+
+        currentSeparatedX += hfCols * glSpacing;
     }
 
     return { nodes, edges };

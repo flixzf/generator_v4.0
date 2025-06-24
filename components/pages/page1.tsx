@@ -230,7 +230,13 @@ function getSeparatedProcesses(selectedModel?: any, config?: Config) {
 // 메인 컴포넌트
 // ---------------------------
 const Page1: React.FC = () => {
-  const { config, updateConfig, models } = useOrgChart();
+  const { 
+    config, 
+    updateConfig, 
+    models, 
+    lineModelSelections, 
+    updateLineModelSelection 
+  } = useOrgChart();
 
   // InteractivePositionBox 훅 사용
   const {
@@ -253,29 +259,12 @@ const Page1: React.FC = () => {
   const [dragThreshold] = useState(5); // 드래그 임계값 (픽셀)
   const [hasDraggedEnough, setHasDraggedEnough] = useState(false);
 
-  // 라인별 선택된 모델 인덱스 관리
-  const [lineModelSelections, setLineModelSelections] = useState<number[]>(
-    Array(config.lineCount).fill(0) // 모든 라인에 첫 번째 모델(index 0) 할당
-  );
-
   // 참조 (상단 컨테이너, 조직도)
   const topContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
   // 공통 spacing 설정 사용
   const spacingConfig = getPage1SpacingConfig();
-
-  // lineCount가 변경될 때 라인별 모델 선택 배열 업데이트
-  useEffect(() => {
-    setLineModelSelections(prev => {
-      const newSelections = Array(config.lineCount).fill(0);
-      // 기존 선택사항을 유지 (범위 내에서)
-      for (let i = 0; i < Math.min(prev.length, config.lineCount); i++) {
-        newSelections[i] = prev[i] < models.length ? prev[i] : 0;
-      }
-      return newSelections;
-    });
-  }, [config.lineCount, models.length]);
 
   // InteractivePositionBox 생성 헬퍼 함수
   const createInteractiveBox = (
@@ -661,15 +650,6 @@ const Page1: React.FC = () => {
     // 같은 라인이나 부서의 위치들을 찾아서 하이라이트
     // 실제 구현에서는 더 복잡한 로직이 필요
     return [];
-  };
-
-  // 라인별 모델 선택 변경 함수
-  const updateLineModelSelection = (lineIndex: number, modelIndex: number) => {
-    setLineModelSelections(prev => {
-      const newSelections = [...prev];
-      newSelections[lineIndex] = modelIndex;
-      return newSelections;
-    });
   };
 
   // 실제 JSX
