@@ -7,7 +7,7 @@ import { Node } from 'reactflow';
 type NodeData = {
   colorCategory: 'OH' | 'indirect' | 'direct' | 'blank';
   department: string;
-  level: 'MGL' | 'VSM' | 'GL' | 'TL' | 'TM' | 'DEPT';
+  level: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM' | 'DEPT';
   isDeptName?: boolean;
 };
 
@@ -25,61 +25,13 @@ type Summary = {
 // START: Node Generation Logic from ReactFlowPage1, 2, 3
 // =================================================================
 
-// --- Re-importing getProcessGroups from ReactFlowPage1 ---
-// (This is a simplified representation. The actual implementation will copy the function logic)
+// Import the getProcessGroups function from ReactFlowPage1
+import { getProcessGroups } from '@/components/common/ReactFlowPage1';
+
+// Use the imported getProcessGroups function with 'calculation' context
 function getProcessGroups_p1(config: any, selectedModel?: any, lineIndex?: number) {
-  if (!selectedModel) {
-    return { mainProcesses: [], separatedProcesses: [] };
-  }
-  // This is the full, correct logic copied from ReactFlowPage1.tsx
-  const allProcesses = selectedModel.processes || [];
-  const mainProcesses: any[] = [];
-  const requiredForSplit = ['computer stitching', 'pre-folding', 'pre-stitching'];
-  const hasCuttingPrefitGroup = requiredForSplit.every(requiredName =>
-    allProcesses.some((p: any) => p?.name && p.name.toLowerCase() === requiredName.toLowerCase())
-  );
-  if (hasCuttingPrefitGroup) {
-    const cuttingPrefitProcessNames = ['cutting', 'pre-folding', 'computer stitching'];
-    const cuttingPrefitProcesses = allProcesses.filter((p: any) => p?.name && cuttingPrefitProcessNames.includes(p.name.toLowerCase()));
-    if (cuttingPrefitProcesses.length > 0) {
-        mainProcesses.push({ gl: { subtitle: "Cutting-Prefit" }, tlGroup: cuttingPrefitProcesses.map((p: any) => ({ subtitle: p.name })), tmGroup: cuttingPrefitProcesses.map((p: any) => ({ subtitle: p.name })), showGL: true });
-    }
-    const remainingStitchingProcesses = allProcesses.filter((p: any) => {
-        if (!p?.name) return false;
-        const nameLower = p.name.toLowerCase();
-        return (nameLower.includes('stitching') && !nameLower.includes('computer')) || nameLower.includes('pre-stitching');
-    });
-    if (remainingStitchingProcesses.length > 0) {
-        const tlGroup: any[] = [];
-        const tmGroup: any[] = [];
-        remainingStitchingProcesses.forEach((p: any) => {
-            const nameLower = p.name.toLowerCase();
-            if (nameLower.includes('pre-stitching') || nameLower.includes('prefit')) {
-                tlGroup.push({ subtitle: p.name });
-                tmGroup.push({ subtitle: p.name });
-            } else if (nameLower.includes('stitching')) {
-                for (let i = 1; i <= (config?.miniLineCount || 1); i++) {
-                    tlGroup.push({ subtitle: p.name });
-                    tmGroup.push({ subtitle: p.name });
-                }
-            }
-        });
-        mainProcesses.push({ gl: { subtitle: "Stitching" }, tlGroup: tlGroup, tmGroup: tmGroup, showGL: true });
-    }
-  } else {
-    const stitchingGroupProcesses = allProcesses.filter((p: any) => p?.name && (p.name.toLowerCase().includes('stitching') || p.name.toLowerCase().includes('cutting') || p.name.toLowerCase().includes('pre-folding')));
-    if (stitchingGroupProcesses.length > 0) {
-        mainProcesses.push({ gl: { subtitle: "Stitching" }, tlGroup: stitchingGroupProcesses, tmGroup: stitchingGroupProcesses, showGL: true });
-    }
-  }
-  const stockfitProcesses = allProcesses.filter((p: any) => p?.name && p.name.toLowerCase().includes('stockfit'));
-  if (stockfitProcesses.length > 0) {
-    let shouldShow = (config?.stockfitRatio !== "2:1" || (lineIndex !== undefined && lineIndex % 2 === 0));
-    mainProcesses.push({ gl: { subtitle: "Stockfit" }, tlGroup: stockfitProcesses, tmGroup: stockfitProcesses, showGL: shouldShow });
-  }
-  const assemblyProcesses = allProcesses.filter((p: any) => p?.name && !/stitching|stockfit|no-sew|hf welding|cutting|pre-folding/.test(p.name.toLowerCase()));
-  mainProcesses.push({ gl: { subtitle: "Assembly" }, tlGroup: [{ s: "Input" }, { s: "Cementing" }, { s: "Finishing" }], tmGroup: [{s: "Assembly"}, {s: "Last"}], showGL: true });
-  return { mainProcesses, separatedProcesses: [] }; // Simplified for counting
+  // Use the 'calculation' context to ensure stockfit and assembly remain separate for calculations
+  return getProcessGroups(config, selectedModel, lineIndex, 'calculation');
 }
 
 // --- Logic from ReactFlowPage1 (DYNAMIC) ---
@@ -88,8 +40,8 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
   let idCounter = 1;
   const getNextId = () => `p1-node-${idCounter++}`;
   
-  // MGL 노드
-  nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'MGL', colorCategory: 'OH' } });
+  // PM 노드
+  nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'PM', colorCategory: 'OH' } });
   
   // 분리된 공정을 가진 라인들 찾기
   const linesWithNosew: number[] = [];
@@ -182,7 +134,7 @@ const generateNodesForPage2 = (config: any): CustomNode[] => {
     const getColorCategory = (deptTitle: string, position: 'GL' | 'TL' | 'TM', subtitle?: string): NodeData['colorCategory'] => {
         if (["Admin", "Small Tooling", "Sub Material"].includes(deptTitle)) return "OH";
         if (deptTitle === "FG WH" && position === "TM" && subtitle?.includes("Shipping")) return "OH";
-        if (deptTitle === "Plant Production(Outsole degreasing)" && position === "TM") return "direct";
+        if (deptTitle === "Plant Production" && position === "TM") return "direct";
         return "indirect";
     };
 
@@ -236,7 +188,7 @@ const generateNodesForPage2 = (config: any): CustomNode[] => {
             ],
         },
         {
-            title: "Plant Production(Outsole degreasing)",
+            title: "Plant Production",
             hasGL: false,
             tl: [],
             tm: [
@@ -376,10 +328,10 @@ const generateNodesForPage3 = (config: any): CustomNode[] => {
 // =================================================================
 
 const SummaryTable = ({ title, data, laborType }: { title: string; data: Summary; laborType: string }) => {
-  const levels = ["MGL", "VSM", "GL", "TL", "TM"];
+  const levels = ["PM", "VSM", "GL", "TL", "TM"];
   
   // Plant와 Supporting Team 부서 분류
-  const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production(Outsole degreasing)", "FG WH"];
+  const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production", "FG WH"];
   const supportingDepts = ["Quality", "CE", "TPM", "CQM", "Lean", "Security", "RMCC"];
   
   const getGrandTotal = (column: string | 'SUM') => {
@@ -462,10 +414,10 @@ export default function Page4Indirect() {
 
     const indirectSummary: Summary = {};
     const overheadSummary: Summary = {};
-    const levels = ["MGL", "VSM", "GL", "TL", "TM", "DEPT"];
+    const levels = ["PM", "VSM", "GL", "TL", "TM", "DEPT"];
     
     // Plant와 Supporting Team 부서 분류
-    const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production(Outsole degreasing)", "FG WH"];
+    const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production", "FG WH"];
     const supportingDepts = ["Quality", "CE", "TPM", "CQM", "Lean", "Security", "RMCC"];
     const allDepts = [...plantDepts, ...supportingDepts];
 

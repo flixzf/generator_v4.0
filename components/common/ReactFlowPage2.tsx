@@ -6,145 +6,11 @@ import ReactFlow, {
   MiniMap,
   useNodesState,
   useEdgesState,
-  Handle,
-  Position,
   ReactFlowInstance,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
-
-// page1.tsx와 동일한 CustomPositionNode 컴포넌트
-const CustomPositionNode = ({ data }: { data: any }) => {
-  const getBackgroundColor = (colorCategory: string, level: number) => {
-    switch (colorCategory) {
-      case 'direct':
-        return '#f3f4f6'; // gray-100
-      case 'indirect':
-        return '#e5e7eb'; // gray-200
-      case 'OH':
-        return '#9ca3af'; // gray-400
-      default:
-        return '#f9fafb'; // gray-50
-    }
-  };
-
-  const getBorderColor = (colorCategory: string) => {
-    switch (colorCategory) {
-      case 'direct':
-        return '#6b7280'; // gray-500
-      case 'indirect':
-        return '#4b5563'; // gray-600
-      case 'OH':
-        return '#374151'; // gray-700
-      default:
-        return '#d1d5db'; // gray-300
-    }
-  };
-
-  // 부서명 텍스트 노드인 경우 박스 없이 텍스트만 표시
-  if (data.isDeptName) {
-    return (
-      <div
-        style={{
-          textAlign: 'center',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          color: '#1f2937',
-          width: '140px', // GL과 동일 폭으로 X정렬
-          padding: '8px 12px',
-          backgroundColor: 'transparent',
-          border: 'none',
-          minHeight: '40px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
-          alignItems: 'center',
-          whiteSpace: 'pre-line',
-        }}
-      >
-        {/* 입력 핸들 (위쪽) */}
-        <Handle
-          type="target"
-          position={Position.Top}
-          style={{ background: '#555' }}
-        />
-        
-        {data.subtitle}
-        
-        {/* 출력 핸들 (아래쪽) */}
-        <Handle
-          type="source"
-          position={Position.Bottom}
-          style={{ background: '#555' }}
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        padding: '8px 12px',
-        borderRadius: '6px',
-        border: `2px solid ${getBorderColor(data.colorCategory)}`,
-        backgroundColor: getBackgroundColor(data.colorCategory, data.level),
-        width: '140px', // 고정 너비
-        minHeight: '60px', // 최소 높이
-        textAlign: 'center',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        color: '#1f2937',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        wordWrap: 'break-word',
-        overflow: 'hidden'
-      }}
-    >
-      {/* 입력 핸들 (위쪽) */}
-      <Handle
-        type="target"
-        position={Position.Top}
-        style={{ background: '#555' }}
-      />
-      
-      <div style={{ 
-        fontSize: '14px', 
-        fontWeight: 'bold', 
-        marginBottom: '4px',
-        lineHeight: '1.2',
-        wordBreak: 'break-word',
-        hyphens: 'auto'
-      }}>
-        {data.title}
-      </div>
-      <div style={{ 
-        fontSize: '10px', 
-        color: '#6b7280',
-        lineHeight: '1.3',
-        wordBreak: 'break-word',
-        hyphens: 'auto',
-        textAlign: 'center',
-        maxWidth: '100%'
-      }}>
-        {data.subtitle}
-      </div>
-      
-      {/* 출력 핸들 (아래쪽) */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        style={{ background: '#555' }}
-      />
-    </div>
-  );
-};
-
-const nodeTypes = {
-  position: CustomPositionNode,
-};
+import { CustomPositionNode, nodeTypes } from './CustomPositionNode';
 
 interface ReactFlowPage2Props {
   onInit?: (instance: ReactFlowInstance) => void;
@@ -301,8 +167,8 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
       return "OH";
     }
     
-    // 5. Plant Production: TM (직접 생산 관련)
-    if (deptName === "Plant Production" && position === "TM") {
+    // 5. Plant Production: ALL TMs are direct (직접 생산 관련)
+    if (deptName === "Plant Production\n(Outsole degreasing)" && position === "TM") {
       return "direct";
     }
     

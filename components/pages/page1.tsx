@@ -27,7 +27,6 @@ export interface Config {
   shiftsCount: number;
   miniLineCount: number;
   hasTonguePrefit: boolean;
-  stockfitRatio: string;
   cuttingPrefitCount: number;
   stitchingCount: number;
   stockfitCount: number;
@@ -42,7 +41,6 @@ const defaultConfig: Config = {
   shiftsCount: 2,
   miniLineCount: 2,
   hasTonguePrefit: true,
-  stockfitRatio: "2:1",
   cuttingPrefitCount: 1,
   stitchingCount: 1,
   stockfitCount: 1,
@@ -52,33 +50,68 @@ const defaultConfig: Config = {
 // ---------------------------
 // getProcessGroups 함수 - 모델 데이터 기반 공정 분리 기능
 // ---------------------------
-function getProcessGroups(config: Config, selectedModel?: any) {
+function getProcessGroups(config: Config, selectedModel?: any, lineIndex?: number, context: 'display' | 'calculation' = 'display') {
   if (!selectedModel) {
     // 모델이 없을 때 기본 구조
-    return {
-      mainProcesses: [
-    {
-          gl: { subtitle: "Stitching", count: 1 },
-          tlGroup: [{ subtitle: "No Process" }],
-          tmGroup: [{ subtitle: "No Data" }],
-    },
-    {
-          gl: { subtitle: "Stockfit", count: 1 },
-          tlGroup: [{ subtitle: "Stockfit" }],
-      tmGroup: [{ subtitle: "MH → Assembly" }],
-    },
-    {
-          gl: { subtitle: "Assembly", count: 1 },
-      tlGroup: [{ subtitle: "Input" }, { subtitle: "Cementing" }, { subtitle: "Finishing" }],
-      tmGroup: [
-        { subtitle: "MH → Assembly" },
-        { subtitle: "MH → FG WH" },
-        { subtitle: "MH → Last" },
-      ],
-    },
-      ],
-      separatedProcesses: []
-    };
+    if (context === 'display') {
+      // 디스플레이 컨텍스트에서는 Stockfit-Assembly를 병합
+      return {
+        mainProcesses: [
+          {
+            gl: { subtitle: "Stitching", count: 1 },
+            tlGroup: [{ subtitle: "No Process" }],
+            tmGroup: [{ subtitle: "No Data" }],
+            showGL: true
+          },
+          {
+            gl: { subtitle: "Stockfit-Assembly", count: 1 },
+            tlGroup: [
+              { subtitle: "Stockfit" },
+              { subtitle: "Input" }, 
+              { subtitle: "Cementing" }, 
+              { subtitle: "Finishing" }
+            ],
+            tmGroup: [
+              { subtitle: "MH → Assembly (Stockfit)" },
+              { subtitle: "MH → Assembly" },
+              { subtitle: "MH → FG WH" },
+              { subtitle: "MH → Last" },
+            ],
+            showGL: true
+          },
+        ],
+        separatedProcesses: []
+      };
+    } else {
+      // 계산 컨텍스트에서는 기존 구조 유지
+      return {
+        mainProcesses: [
+          {
+            gl: { subtitle: "Stitching", count: 1 },
+            tlGroup: [{ subtitle: "No Process" }],
+            tmGroup: [{ subtitle: "No Data" }],
+            showGL: true
+          },
+          {
+            gl: { subtitle: "Stockfit", count: 1 },
+            tlGroup: [{ subtitle: "Stockfit" }],
+            tmGroup: [{ subtitle: "MH → Assembly" }],
+            showGL: true
+          },
+          {
+            gl: { subtitle: "Assembly", count: 1 },
+            tlGroup: [{ subtitle: "Input" }, { subtitle: "Cementing" }, { subtitle: "Finishing" }],
+            tmGroup: [
+              { subtitle: "MH → Assembly" },
+              { subtitle: "MH → FG WH" },
+              { subtitle: "MH → Last" },
+            ],
+            showGL: true
+          },
+        ],
+        separatedProcesses: []
+      };
+    }
   }
 
   // 모델의 공정들을 분류
@@ -119,50 +152,110 @@ function getProcessGroups(config: Config, selectedModel?: any) {
         subtitle: `${process.name} TM`,
         manpower: process.manAsy 
       })),
-      processes: stitchingProcesses
+      processes: stitchingProcesses,
+      showGL: true
     });
   }
 
-  // 2. Stockfit 그룹
-  if (stockfitProcesses.length > 0) {
-    mainProcesses.push({
-      gl: { subtitle: "Stockfit", count: 1 },
-      tlGroup: stockfitProcesses.map((process: any) => ({ 
-        subtitle: process.name,
-        manpower: process.manAsy 
-      })),
-      tmGroup: [{ subtitle: "MH → Assembly" }],
-      processes: stockfitProcesses
-    });
-  }
-
-  // 3. Assembly 그룹 (고정 TL + 실제 공정)
-  const assemblyTLGroup = [
-    { subtitle: "Input", manpower: 5 },
-    { subtitle: "Cementing", manpower: 8 },
-    { subtitle: "Finishing", manpower: 6 }
-  ];
-  
-  // 실제 assembly 공정이 있으면 추가
-  if (assemblyProcesses.length > 0) {
-    assemblyProcesses.forEach((process: any) => {
-      assemblyTLGroup.push({ 
-        subtitle: process.name,
-        manpower: process.manAsy 
+  // 2 & 3. Stockfit-Assembly 그룹 (display 컨텍스트) 또는 개별 그룹 (calculation 컨텍스트)
+  if (context === 'display') {
+    // 디스플레이 컨텍스트에서는 Stockfit-Assembly를 병합
+    
+    // Stockfit TL 그룹
+    const stockfitTLGroup = stockfitProcesses.map((process: any) => ({ 
+      subtitle: `${process.name} (Stockfit)`,
+      manpower: process.manAsy 
+    }));
+    
+    // Assembly TL 그룹 (고정 TL + 실제 공정)
+    const assemblyTLGroup = [
+      { subtitle: "Input (Assembly)", manpower: 5 },
+      { subtitle: "Cementing (Assembly)", manpower: 8 },
+      { subtitle: "Finishing (Assembly)", manpower: 6 }
+    ];
+    
+    // 실제 assembly 공정이 있으면 추가
+    if (assemblyProcesses.length > 0) {
+      assemblyProcesses.forEach((process: any) => {
+        assemblyTLGroup.push({ 
+          subtitle: `${process.name} (Assembly)`,
+          manpower: process.manAsy 
+        });
       });
+    }
+    
+    // 병합된 TM 그룹
+    const mergedTMGroup = [
+      { subtitle: "Stockfit", manpower: stockfitProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0) },
+      { subtitle: "Assembly", manpower: assemblyProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0) },
+      { subtitle: "Assembly Last", manpower: 0 }
+    ];
+    
+    // 병합된 Stockfit-Assembly 그룹 추가
+    const stockfitManpower = stockfitProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0);
+    const assemblyManpower = assemblyProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0);
+    const totalManpower = stockfitManpower + assemblyManpower;
+    
+    mainProcesses.push({
+      gl: { 
+        subtitle: totalManpower > 0 ? `Stockfit-Assembly [${totalManpower}]` : "Stockfit-Assembly", 
+        count: 1 
+      },
+      tlGroup: [...stockfitTLGroup, ...assemblyTLGroup],
+      tmGroup: mergedTMGroup,
+      processes: [...stockfitProcesses, ...assemblyProcesses],
+      showGL: true,
+      sourceProcesses: {
+        stockfit: stockfitProcesses,
+        assembly: assemblyProcesses
+      }
+    });
+  } else {
+    // 계산 컨텍스트에서는 기존 구조 유지 (Stockfit과 Assembly 분리)
+    
+    // 2. Stockfit 그룹
+    if (stockfitProcesses.length > 0) {
+      mainProcesses.push({
+        gl: { subtitle: "Stockfit", count: 1 },
+        tlGroup: stockfitProcesses.map((process: any) => ({ 
+          subtitle: process.name,
+          manpower: process.manAsy 
+        })),
+        tmGroup: [{ subtitle: "MH → Assembly" }],
+        processes: stockfitProcesses,
+        showGL: true
+      });
+    }
+
+    // 3. Assembly 그룹 (고정 TL + 실제 공정)
+    const assemblyTLGroup = [
+      { subtitle: "Input", manpower: 5 },
+      { subtitle: "Cementing", manpower: 8 },
+      { subtitle: "Finishing", manpower: 6 }
+    ];
+    
+    // 실제 assembly 공정이 있으면 추가
+    if (assemblyProcesses.length > 0) {
+      assemblyProcesses.forEach((process: any) => {
+        assemblyTLGroup.push({ 
+          subtitle: process.name,
+          manpower: process.manAsy 
+        });
+      });
+    }
+
+    mainProcesses.push({
+      gl: { subtitle: "Assembly", count: 1 },
+      tlGroup: assemblyTLGroup,
+      tmGroup: [
+        { subtitle: "MH → Assembly" },
+        { subtitle: "MH → FG WH" },
+        { subtitle: "MH → Last" },
+      ],
+      processes: assemblyProcesses,
+      showGL: true
     });
   }
-
-  mainProcesses.push({
-    gl: { subtitle: "Assembly", count: 1 },
-    tlGroup: assemblyTLGroup,
-    tmGroup: [
-      { subtitle: "MH → Assembly" },
-      { subtitle: "MH → FG WH" },
-      { subtitle: "MH → Last" },
-    ],
-    processes: assemblyProcesses
-  });
 
   return { 
     mainProcesses, 
@@ -396,11 +489,11 @@ const Page1: React.FC = () => {
     const columnsToRender = columns.filter(col => col.lines.length > 0);
     if (columnsToRender.length === 0) return null;
 
-    // MGL 박스 높이 (80px) + 간격 + VSM 박스 높이 (80px) + 간격을 계산하여 GL 레벨 맞춤
-    const mglHeight = 80;
+    // PM 박스 높이 (80px) + 간격 + VSM 박스 높이 (80px) + 간격을 계산하여 GL 레벨 맞춤
+    const pmHeight = 80;
     const vsmHeight = 80;
     const verticalGap = spacingConfig.verticalHierarchy;
-    const topMargin = mglHeight + verticalGap + vsmHeight + verticalGap;
+    const topMargin = pmHeight + verticalGap + vsmHeight + verticalGap;
 
     return (
       <div className="flex flex-col items-center ml-8 border-l-2 border-gray-300 pl-8">
@@ -572,7 +665,7 @@ const Page1: React.FC = () => {
 
   // 인원 수 계산
   const calculatePositionCount = (position: string): number => {
-    if (position === "MGL") return 1;
+    if (position === "PM") return 1;
     
     if (position === "VSM") {
       // VSM은 항상 라인당 1명으로 고정
@@ -586,16 +679,36 @@ const Page1: React.FC = () => {
       const selectedModel = models[modelIndex];
       if (!selectedModel) return;
       
-      const { mainProcesses, separatedProcesses } = getProcessGroups(config, selectedModel);
+      // 'display' 컨텍스트를 명시적으로 전달하여 병합된 구조를 사용
+      const { mainProcesses, separatedProcesses } = getProcessGroups(config, selectedModel, lineIndex, 'display');
       
       // 메인 공정들의 인원 계산
       mainProcesses.forEach((group) => {
+        // 병합된 Stockfit-Assembly 노드 처리
+        const isStockfitAssembly = group.gl?.subtitle?.includes('Stockfit-Assembly');
+        
         if (position === "GL") {
+          // 병합된 노드는 하나의 GL로 계산
           total += group.gl.count || 1;
         } else if (position === "TL") {
+          // TL은 그룹 내 모든 TL 포함 (병합된 구조에서도 모든 TL 카운트)
           total += group.tlGroup.length;
         } else if (position === "TM") {
-          total += group.tmGroup?.length || 0;
+          // TM은 그룹 내 모든 TM 포함
+          if (isStockfitAssembly && group.sourceProcesses) {
+            // 병합된 노드의 경우 실제 인원수 계산
+            const stockfitManpower = group.sourceProcesses.stockfit.reduce(
+              (sum: number, p: any) => sum + (p.manAsy || 0), 0
+            );
+            const assemblyManpower = group.sourceProcesses.assembly.reduce(
+              (sum: number, p: any) => sum + (p.manAsy || 0), 0
+            );
+            // TM 그룹의 개수가 아닌 실제 인원수 합산
+            total += stockfitManpower + assemblyManpower;
+          } else {
+            // 일반 노드는 TM 그룹 개수로 계산
+            total += group.tmGroup?.length || 0;
+          }
         }
       });
       
@@ -606,7 +719,12 @@ const Page1: React.FC = () => {
         } else if (position === "TL") {
           total += group.tlGroup.length;
         } else if (position === "TM") {
-          total += group.tmGroup?.length || 0;
+          // 분리된 공정의 TM은 각 공정의 manpower 합산
+          if (group.processes) {
+            total += group.processes.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0);
+          } else {
+            total += group.tmGroup?.length || 0;
+          }
         }
       });
     });
@@ -640,10 +758,16 @@ const Page1: React.FC = () => {
     }));
   };
 
-  const totalPeople = ["MGL", "VSM", "GL", "TL", "TM"].reduce(
-    (acc, pos) => acc + calculatePositionCount(pos),
-    0
-  );
+  // 인원 요약 계산
+  const positionCounts = {
+    PM: calculatePositionCount("PM"),
+    VSM: calculatePositionCount("VSM"),
+    GL: calculatePositionCount("GL"),
+    TL: calculatePositionCount("TL"),
+    TM: calculatePositionCount("TM")
+  };
+  
+  const totalPeople = Object.values(positionCounts).reduce((acc, count) => acc + count, 0);
 
   // 관련 위치 ID들을 찾는 함수
   const getRelatedPositionIds = (data: PositionData): string[] => {
@@ -687,6 +811,37 @@ const Page1: React.FC = () => {
           </div>
           <div className="bg-gray-400 border border-gray-500 px-4 py-2 rounded-lg shadow-sm">
             <span className="text-sm font-semibold text-black">OH</span>
+          </div>
+        </div>
+        
+        {/* 인원 요약 정보 패널 - 오른쪽 상단 */}
+        <div className="fixed right-8 top-24 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
+          <div className="font-semibold text-lg mb-2">인원 요약</div>
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="font-medium">PM:</span>
+              <span>{positionCounts.PM}명</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">VSM:</span>
+              <span>{positionCounts.VSM}명</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">GL:</span>
+              <span>{positionCounts.GL}명</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">TL:</span>
+              <span>{positionCounts.TL}명</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">TM:</span>
+              <span>{positionCounts.TM}명</span>
+            </div>
+            <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-bold">
+              <span>총 인원:</span>
+              <span>{totalPeople}명</span>
+            </div>
           </div>
         </div>
 
@@ -799,17 +954,7 @@ const Page1: React.FC = () => {
                   }}
                 />
               </label>
-              <label className="flex flex-col">
-                <span className="text-sm font-semibold">Stockfit 비율</span>
-                <Select
-                  size="small"
-                  value={config.stockfitRatio}
-                  onChange={(e) => updateConfig({ stockfitRatio: e.target.value as string })}
-                >
-                  <MenuItem value="1:1">1:1</MenuItem>
-                  <MenuItem value="2:1">2:1</MenuItem>
-                </Select>
-              </label>
+
             </div>
             
             {/* 라인별 모델 선택 */}
@@ -843,9 +988,9 @@ const Page1: React.FC = () => {
           <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[280px]">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-semibold">MGL:</span>
+                <span className="font-semibold">PM:</span>
                 <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("MGL")}
+                  {calculatePositionCount("PM")}
                 </div>
               </div>
               <div className="flex items-center justify-between">

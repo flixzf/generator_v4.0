@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // 모델별 공정 데이터 타입 추가
-type ProcessData = {
+export type ProcessData = {
   name: string;
   manStt: number;
   manAsy: number;
@@ -10,7 +10,7 @@ type ProcessData = {
   shift: number;
 };
 
-type ModelData = {
+export type ModelData = {
   category: string;
   modelName: string;
   styleNo: string;
@@ -22,7 +22,7 @@ type Department = {
   title?: string[];  // page2의 title 참조용
   tl?: string[];     // page2의 tl 참조용
   tm?: string[][];   // page2의 tm 참조용
-  MGL: number;
+  PM: number;
   VSM: number;
   GL: number;
   TL: number;
@@ -35,7 +35,6 @@ type Config = {
   shiftsCount: number;
   miniLineCount: number;
   hasTonguePrefit: boolean;
-  stockfitRatio: string;
   cuttingPrefitCount: number;
   stitchingCount: number;
   stockfitCount: number;
@@ -68,7 +67,7 @@ type OrgChartData = {
   updateModel: (modelIndex: number, model: ModelData) => void;
   addModel: (model: ModelData) => void;
   removeModel: (modelIndex: number) => void;
-  getTotalByPosition: (position: 'MGL' | 'VSM' | 'GL' | 'TL' | 'TM') => number;
+  getTotalByPosition: (position: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM') => number;
   lineModelSelections: number[];
   updateLineModelSelection: (lineIndex: number, modelIndex: number) => void;
 };
@@ -110,7 +109,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Stockfit TM'],
       ['Assembly Input', 'Assembly Cementing', 'Assembly Finishing']
     ],
-    MGL: 1,
+    PM: 1,
     VSM: 1,
     GL: 1,
     TL: 4,
@@ -121,7 +120,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Admin'],
     tl: [],
     tm: [['Payroll'], ['APS'], ['Material'], ['Production'], ['GMES']],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: Array.isArray(['Admin']) ? 0 : 1,
     TL: [].length,
@@ -132,7 +131,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Small Tooling'],
     tl: ['Small Tooling'],
     tm: [['Cutting Die'], ['Pallet'], ['Pad/Mold']],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: Array.isArray(['Small Tooling']) ? 0 : 1,
     TL: ['Small Tooling'].length,
@@ -143,7 +142,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Raw Material'],
     tl: ['Incoming', 'Distribution'],
     tm: [['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,
     TL: 2,
@@ -154,7 +153,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Sub Material'],
     tl: ['SAP RO'],
     tm: [['Incoming Mgmt.'], ['Distribution']],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,
     TL: 1,
@@ -165,7 +164,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['ACC'],
     tl: ['Incoming', 'Distribution'],
     tm: [['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,
     TL: 2,
@@ -176,7 +175,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['P&L'],
     tl: ['Stencil 1-2', 'Stencil 3-4', 'Stencil 5-6'],
     tm: [['Incoming'], ['Setting'], ['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,
     TL: 3,
@@ -191,7 +190,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Midsole Incoming'], ['Midsole Setting'],
       ['Airbag 1-2'], ['Airbag 3-4'], ['Airbag 5-6'], ['Airbag 7-8']
     ],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,
     TL: 3,
@@ -207,7 +206,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Shipping 5-6'], ['Shipping 7-8'],
       ['Report'], ['Metal Detect']
     ],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,
     TL: 2,
@@ -219,7 +218,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Quality'],
     tl: ['QA', 'MA'],
     tm: [[]],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 2,
@@ -232,7 +231,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['CE'],
     tl: ['Mixing', 'Assembly Control'],
     tm: [[]],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 2,
@@ -243,7 +242,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['TPM'],
     tl: ['Stitching', 'Cutting & Stockfit·Assembly', 'CMMS & Electricity'],
     tm: [[]],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 3,
@@ -254,7 +253,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['CQM-NPI'],
     tl: [],
     tm: [[]],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 0,
@@ -265,7 +264,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Lean'],
     tl: [],  // TL 없음
     tm: [[]],  // 빈 배열로 초기화 (실제 값은 calculateLeanDepartment에서 설정)
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,  // GL 1명 고정
     TL: 0,  // TL 없음
@@ -276,7 +275,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Security'],
     tl: [],
     tm: [[]],  // 빈 배열로 초기화 (실제 값은 calculateSecurityDepartment에서 설정)
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,  // GL 없음
     TL: 0,
@@ -287,7 +286,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['RMCC'],
     tl: [],
     tm: [['Solid Waste']],  // 1명 고정
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,  // GL 없음
     TL: 0,
@@ -333,7 +332,7 @@ const calculateDepartment = (
     title: prev?.title || initial.title,
     tl: prev?.tl || initial.tl,
     tm: prev?.tm || initial.tm,
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: glCount,
     TL: prev?.tl?.length || initial.tl?.length || 0,
@@ -349,7 +348,7 @@ const calculateLeanDepartment = (config: Config): Department => {
     title: ['Lean'],
     tl: [],
     tm: [makeDoubleLines(config.lineCount).map(line => `Line ${line}`)],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 0,
@@ -375,7 +374,7 @@ const calculateQualityDepartment = (config: Config): Department => {
       ]).flat(),
       ['HEPA MA 검사-1', 'HEPA MA 검사-2', 'MQAA Audit-1', 'MQAA Audit-2']
     ],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 2,
@@ -399,7 +398,7 @@ const calculateCEDepartment = (config: Config): Department => {
     title: ['CE'],
     tl: ['Mixing', 'Assembly Control'],
     tm: tmArray,
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 2,
@@ -433,7 +432,7 @@ const calculateTPMDepartment = (config: Config): Department => {
       // CMMS & Electricity TM
       ['CMMS', 'Electricity']
     ],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 1,
     TL: 3,
@@ -507,7 +506,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     const perLineTL = (
       config.shiftsCount +
       (config.miniLineCount + (config.hasTonguePrefit ? 1 : 0)) +
-      (config.stockfitRatio === "1:1" ? 1 : 2) +
+      1 + // Fixed value for stockfit (merged stockfit-assembly)
       3
     );
     return perLineTL * config.lineCount;
@@ -542,14 +541,14 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         // Stitching TM: miniLineCount + hasTonguePrefit만큼
         Array(config.miniLineCount + (config.hasTonguePrefit ? 1 : 0)).fill('Stitching TM'),
         
-        // Stockfit TM: stockfitRatio에 따라
-        Array(config.stockfitRatio === "1:1" ? 1 : 2).fill('Stockfit TM'),
+        // Stockfit TM: 1개로 고정 (stockfitRatio 제거)
+        Array(1).fill('Stockfit TM'),
         
         // Assembly TM: 3개 고정 (Input, Cementing, Finishing)
         ['Assembly Input', 'Assembly Cementing', 'Assembly Finishing']
       ],
-      MGL: 1,
-      VSM: config.lineCount,  // lineCount에 따라 변경
+      PM: 1,
+      VSM: Math.ceil(config.lineCount / 2),  // 2개 라인당 1명의 VSM
       GL: 4 * config.lineCount,  // lineCount당 4명의 GL
       TL: calculateTotalTL(config),  // config 기반으로 TL 계산
       TM: calculateTotalTM(config)   // config 기반으로 TM 계산
@@ -565,7 +564,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['Admin'],
       tl: adminTL,  // 수정된 tl 배열 사용
       tm: [['Payroll'], ['APS'], ['Material'], ['Production'], ['GMES']],
-      MGL: 1,
+      PM: 1,
       VSM: 0,
       GL: Array.isArray(['Admin']) ? 0 : 1,
       TL: adminTL.length,
@@ -581,7 +580,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: dept.tm,
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1, // title이 배열이면 0, 문자열이면 1
         TL: dept.tl?.length || 1, // TL 배열의 크기
@@ -595,7 +594,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['Small Tooling'], // 배열로 초기화
       tl: ['Small Tooling'], // 1개 요소로 초기화
       tm: [['Cutting Die'], ['Pallet'], ['Pad/Mold']], // 3개 요소로 초기화
-      MGL: 0,
+      PM: 0,
       VSM: 0, 
       GL: 0, // title이 배열이므로 0
       TL: 1,
@@ -623,7 +622,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: 0,
@@ -636,7 +635,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['Raw Material'],
       tl: ['Incoming', 'Distribution'],
       tm: generateTmLines(config.lineCount),
-      MGL: 0,
+      PM: 0,
       VSM: 0,
       GL: 0,
       TL: 0,
@@ -652,7 +651,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: dept.tm,
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: dept.tl?.length || 1,
@@ -665,7 +664,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['Sub Material'],
       tl: ['SAP RO'],
       tm: [['Incoming Mgmt.'], ['Distribution']],
-      MGL: 0,
+      PM: 0,
       VSM: 0,
       GL: 0,
       TL: 1,
@@ -695,7 +694,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: dept.tl?.length || 1,
@@ -708,7 +707,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['ACC'],
       tl: ["Line"],
       tm: generateTmLines(config.lineCount),
-      MGL: 0,
+      PM: 0,
       VSM: 0,
       GL: 0,
       TL: 1,
@@ -740,7 +739,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: 1,
         TL: dept.tl?.length || 1,
@@ -753,7 +752,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['P&L'],
       tl: ['Incoming & Setting'],
       tm: generateTmLines(config.lineCount),
-      MGL: 0,
+      PM: 0,
       VSM: 0,
       GL: 1,
       TL: 1,
@@ -785,7 +784,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: dept.tl?.length || 1,
@@ -798,7 +797,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['Bottom Market'],
       tl: ['Bottom Market'],
       tm: generateTmLines(config.lineCount),
-      MGL: 0,
+      PM: 0,
       VSM: 0,
       GL: 0,
       TL: 1,
@@ -827,7 +826,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(computedTM),
-        MGL: 0,
+        PM: 0,
         VSM: 0,
         GL: 1,
         TL: 1,          // TL은 1로 고정
@@ -840,7 +839,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       title: ['FG WH'],
       tl: ['Shipping'],
       tm: generateTmLines(computedTM),
-      MGL: 0,
+      PM: 0,
       VSM: 0,
       GL: 1,
       TL: 1,          // TL은 1로 고정
@@ -855,7 +854,6 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     shiftsCount: 2,
     miniLineCount: 2,
     hasTonguePrefit: true,
-    stockfitRatio: "2:1",
     cuttingPrefitCount: 1,
     stitchingCount: 1,
     stockfitCount: 1,
@@ -949,7 +947,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 직급별 총합 계산 함수
-  const getTotalByPosition = (position: 'MGL' | 'VSM' | 'GL' | 'TL' | 'TM'): number => {
+  const getTotalByPosition = (position: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM'): number => {
     return Object.values(departments).reduce((sum, dept) => sum + dept[position], 0);
   };
 
@@ -1015,7 +1013,7 @@ const calculateSecurityDepartment = (config: Config): Department => {
     title: ['Security'],
     tl: [],
     tm: [Array.from({ length: config.gateCount }, (_, i) => `Gate ${i + 1}`)],
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,  // GL 없음
     TL: 0,
@@ -1030,7 +1028,7 @@ const calculateRMCCDepartment = (): Department => {
     title: ['RMCC'],
     tl: [],
     tm: [['Solid Waste']],  // 1명 고정
-    MGL: 0,
+    PM: 0,
     VSM: 0,
     GL: 0,  // GL 없음
     TL: 0,

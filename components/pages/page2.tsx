@@ -244,7 +244,7 @@ const Page2: React.FC = () => {
     return 1 + dept.tl.length + dept.tm.reduce((acc, arr) => acc + arr.length, 0);
   };
 
-  const totalMGL = 1; // 그냥 예시 (MGL은 1명)
+  const totalPM = 1; // 그냥 예시 (PM은 1명)
   const totalGL = departments.reduce(
     (acc, dept) => acc + (dept.hasGL ? 1 : 0),
     0
@@ -254,7 +254,7 @@ const Page2: React.FC = () => {
     (acc, dept) => acc + dept.tm.reduce((sum, arr) => sum + arr.length, 0),
     0
   );
-  const totalPeople = totalMGL + totalGL + totalTL + totalTM;
+  const totalPeople = totalPM + totalGL + totalTL + totalTM;
 
   // DepartmentSection 컴포넌트 props 타입 수정
   interface DepartmentSectionProps {

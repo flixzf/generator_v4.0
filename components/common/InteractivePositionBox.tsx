@@ -27,6 +27,13 @@ export interface PositionData {
   status?: 'active' | 'inactive' | 'planning';
   isSelected?: boolean;
   isHighlighted?: boolean;
+  // 병합된 위치 관련 정보
+  isMerged?: boolean;
+  sourceProcesses?: {
+    stockfit?: any[];
+    assembly?: any[];
+  };
+  processOrigin?: 'stockfit' | 'assembly';
   // 좌표 정보 추가
   position?: {
     x: number;
@@ -422,6 +429,55 @@ export const InteractivePositionBox: React.FC<InteractivePositionBoxProps> = ({
               {data.efficiency && <div>⚡ 효율성: {data.efficiency}%</div>}
               {data.processName && <div>🔧 공정: {data.processName}</div>}
               {data.shiftInfo && <div>⏰ 교대: {data.shiftInfo}</div>}
+              
+              {/* 병합된 Stockfit-Assembly 위치에 대한 특별한 정보 표시 */}
+              {data.isMerged && data.sourceProcesses && (
+                <div className="border-t border-gray-600 pt-2 mt-2">
+                  <div className="text-yellow-300 font-semibold mb-1">🔗 병합된 공정 정보:</div>
+                  {data.sourceProcesses.stockfit && data.sourceProcesses.stockfit.length > 0 && (
+                    <div className="ml-2">
+                      <div className="text-blue-300 font-medium">📦 Stockfit 공정:</div>
+                      {data.sourceProcesses.stockfit.map((process: any, idx: number) => (
+                        <div key={idx} className="ml-4 text-xs">
+                          • {process.name}: {process.manAsy || 0}명 (Assembly), {process.manStt || 0}명 (Stitching)
+                        </div>
+                      ))}
+                      <div className="ml-4 text-xs text-blue-200">
+                        소계: {data.sourceProcesses.stockfit.reduce((sum: number, p: any) => sum + (p.manAsy || 0) + (p.manStt || 0), 0)}명
+                      </div>
+                    </div>
+                  )}
+                  {data.sourceProcesses.assembly && data.sourceProcesses.assembly.length > 0 && (
+                    <div className="ml-2 mt-1">
+                      <div className="text-green-300 font-medium">🔧 Assembly 공정:</div>
+                      {data.sourceProcesses.assembly.map((process: any, idx: number) => (
+                        <div key={idx} className="ml-4 text-xs">
+                          • {process.name}: {process.manAsy || 0}명 (Assembly), {process.manStt || 0}명 (Stitching)
+                        </div>
+                      ))}
+                      <div className="ml-4 text-xs text-green-200">
+                        소계: {data.sourceProcesses.assembly.reduce((sum: number, p: any) => sum + (p.manAsy || 0) + (p.manStt || 0), 0)}명
+                      </div>
+                    </div>
+                  )}
+                  <div className="ml-2 mt-1 text-yellow-200 font-medium">
+                    📊 총 병합 인원: {
+                      (data.sourceProcesses.stockfit?.reduce((sum: number, p: any) => sum + (p.manAsy || 0) + (p.manStt || 0), 0) || 0) +
+                      (data.sourceProcesses.assembly?.reduce((sum: number, p: any) => sum + (p.manAsy || 0) + (p.manStt || 0), 0) || 0)
+                    }명
+                  </div>
+                </div>
+              )}
+              
+              {/* 공정 출처 정보 (TL/TM 레벨에서) */}
+              {data.processOrigin && (
+                <div className="border-t border-gray-600 pt-2 mt-2">
+                  <div className="text-purple-300 font-semibold">
+                    🏷️ 공정 출처: {data.processOrigin === 'stockfit' ? '📦 Stockfit' : '🔧 Assembly'}
+                  </div>
+                </div>
+              )}
+              
               {data.responsibilities && data.responsibilities.length > 0 && (
                 <div>💼 담당업무: {data.responsibilities.join(', ')}</div>
               )}
