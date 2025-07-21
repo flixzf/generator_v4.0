@@ -404,14 +404,14 @@ export const VSMGroup: React.FC<VSMGroupProps> = ({
       
       // 병합된 TM 그룹
       const mergedTMGroup = [
-        { subtitle: "Stockfit", manpower: stockfitProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0) },
-        { subtitle: "Assembly", manpower: assemblyProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0) },
+        { subtitle: "Stockfit", manpower: stockfitProcesses.reduce((sum: number, p) => sum + (p.manAsy || 0), 0) },
+        { subtitle: "Assembly", manpower: assemblyProcesses.reduce((sum: number, p) => sum + (p.manAsy || 0), 0) },
         { subtitle: "Assembly Last", manpower: 0 }
       ];
       
       // 병합된 Stockfit-Assembly 그룹 추가
-      const stockfitManpower = stockfitProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0);
-      const assemblyManpower = assemblyProcesses.reduce((sum, p) => sum + (p.manAsy || 0), 0);
+      const stockfitManpower = stockfitProcesses.reduce((sum: number, p) => sum + (p.manAsy || 0), 0);
+      const assemblyManpower = assemblyProcesses.reduce((sum: number, p) => sum + (p.manAsy || 0), 0);
       const totalManpower = stockfitManpower + assemblyManpower;
       
       mainProcesses.push({

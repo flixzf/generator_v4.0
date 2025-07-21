@@ -948,7 +948,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
 
   // 직급별 총합 계산 함수
   const getTotalByPosition = (position: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM'): number => {
-    return Object.values(departments).reduce((sum, dept) => sum + dept[position], 0);
+    return Object.values(departments).reduce((sum: number, dept) => sum + dept[position], 0);
   };
 
   // 모델 관련 함수들

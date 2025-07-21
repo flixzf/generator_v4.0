@@ -257,7 +257,7 @@ export default function Page5() {
                     <tr className="bg-gray-100 font-bold">
                       <td className="border border-gray-300 p-3">총합</td>
                       <td className="border border-gray-300 p-3 text-center">
-                        {models[selectedModelIndex].processes.reduce((sum, p) => sum + p.manStt, 0).toFixed(1)}
+                        {models[selectedModelIndex].processes.reduce((sum: number, p) => sum + p.manStt, 0).toFixed(1)}
                       </td>
                       <td className="border border-gray-300 p-3 text-center">
                         {calculateModelTotal(models[selectedModelIndex])}
