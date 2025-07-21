@@ -415,7 +415,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     });
 
     // ===== 2. 전체 너비 계산 및 PM 노드 생성 =====
-    const totalWidth = lineWidths.reduce((sum: number, width) => sum + width, 0);
+    const totalWidth = lineWidths.reduce((sum: number, width: number) => sum + width, 0);
     const pmId = getNextId();
     const pmX = totalWidth / 2 - 70;
     nodes.push({
@@ -482,11 +482,11 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const lineRange = startLineIndex === endLineIndex
         ? `Line ${startLineIndex + 1}`
         : `Line ${startLineIndex + 1}-${endLineIndex + 1}`;
-      const totalManpower = managedLines.reduce((sum: number, line) => sum + line.manpower, 0);
+      const totalManpower = managedLines.reduce((sum: number, line: any) => sum + line.manpower, 0);
       const vsmSubtitle = `${lineRange} [${totalManpower}명]`;
 
       // VSM 위치 계산 (관리하는 라인들의 중앙)
-      const vsmX = managedLines.reduce((sum: number, line) => {
+      const vsmX = managedLines.reduce((sum: number, line: any) => {
         const lineX = lineWidths.slice(0, line.lineIndex).reduce((acc, w) => acc + w, 0);
         return sum + lineX + lineWidths[line.lineIndex] / 2;
       }, 0) / managedLines.length;

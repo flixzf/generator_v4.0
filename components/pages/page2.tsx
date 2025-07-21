@@ -251,7 +251,7 @@ const Page2: React.FC = () => {
   );
   const totalTL = departments.reduce((acc, dept) => acc + dept.tl.length, 0);
   const totalTM = departments.reduce(
-    (acc, dept) => acc + dept.tm.reduce((sum: number, arr) => sum + arr.length, 0),
+    (acc, dept) => acc + dept.tm.reduce((sum: number, arr: any) => sum + arr.length, 0),
     0
   );
   const totalPeople = totalPM + totalGL + totalTL + totalTM;
