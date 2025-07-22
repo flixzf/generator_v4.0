@@ -668,8 +668,8 @@ const Page1: React.FC = () => {
     if (position === "PM") return 1;
     
     if (position === "LM") {
-      // LM은 항상 라인당 1명으로 고정
-      return config.lineCount;
+      // LM은 2개 라인당 1명으로 계산 (ReactFlowPage1과 일치)
+      return Math.ceil(config.lineCount / 2);
     }
     
     // 모델 기반 인원 계산
@@ -694,21 +694,8 @@ const Page1: React.FC = () => {
           // TL은 그룹 내 모든 TL 포함 (병합된 구조에서도 모든 TL 카운트)
           total += group.tlGroup.length;
         } else if (position === "TM") {
-          // TM은 그룹 내 모든 TM 포함
-          if (isStockfitAssembly && 'sourceProcesses' in group && group.sourceProcesses) {
-            // 병합된 노드의 경우 실제 인원수 계산
-            const stockfitManpower = group.sourceProcesses.stockfit.reduce(
-              (sum: number, p: any) => sum + (p.manAsy || 0), 0
-            );
-            const assemblyManpower = group.sourceProcesses.assembly.reduce(
-              (sum: number, p: any) => sum + (p.manAsy || 0), 0
-            );
-            // TM 그룹의 개수가 아닌 실제 인원수 합산
-            total += stockfitManpower + assemblyManpower;
-          } else {
-            // 일반 노드는 TM 그룹 개수로 계산
-            total += group.tmGroup?.length || 0;
-          }
+          // TM은 OH/indirect 박스 개수만 계산 (실제 direct 인원수가 아님)
+          total += group.tmGroup?.length || 0;
         }
       });
       
@@ -719,12 +706,8 @@ const Page1: React.FC = () => {
         } else if (position === "TL") {
           total += group.tlGroup.length;
         } else if (position === "TM") {
-          // 분리된 공정의 TM은 각 공정의 manpower 합산
-          if (group.processes) {
-            total += group.processes.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0);
-          } else {
-            total += group.tmGroup?.length || 0;
-          }
+          // 분리된 공정의 TM도 OH/indirect 박스 개수만 계산
+          total += group.tmGroup?.length || 0;
         }
       });
     });
