@@ -786,7 +786,7 @@ const Page1: React.FC = () => {
 
         {/* 색상 범례 - 오른쪽 상단 */}
         <div className="fixed right-8 top-8 flex flex-row gap-2 z-50">
-          <div className="bg-gray-50 border border-gray-300 px-4 py-2 rounded-lg shadow-sm">
+          <div className="bg-gray-50 border-2 border-dashed border-gray-400 px-4 py-2 rounded-lg shadow-sm">
             <span className="text-sm font-semibold text-black">Direct</span>
           </div>
           <div className="bg-gray-200 border border-gray-400 px-4 py-2 rounded-lg shadow-sm">
@@ -872,10 +872,8 @@ const Page1: React.FC = () => {
           </div>
         )}
 
-        {/* 컨트롤 패널들을 수평으로, 하단 정렬 */}
-        <div className="fixed right-8 bottom-8 flex flex-row items-end gap-4 z-50">
-          {/* 설정 패널 */}
-          <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
+        {/* 설정 패널 - 왼쪽 상단으로 이동 */}
+        <div className="fixed left-8 top-36 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
             <div className="flex items-center space-x-4 mb-4">
               <label className="flex flex-col">
                 <span className="text-sm font-semibold">라인 수</span>
@@ -965,84 +963,9 @@ const Page1: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* 인원 합계창 */}
-          <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200 w-[280px]">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">PM:</span>
-                <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("PM")}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">LM:</span>
-                <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("LM")}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">GL:</span>
-                <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("GL")}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">TL:</span>
-                <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("TL")}
-                </div>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold">TM:</span>
-                <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("TM")}
-                </div>
-              </div>
-              <div className="pt-2 mt-2 border-t flex items-center justify-between">
-                <span className="font-semibold">총 인원수:</span>
-                <div className="bg-gray-200 px-3 py-0.5 rounded font-bold">
-                  {totalPeople}
-                </div>
-              </div>
-              
-              {/* 모델별 정보 표시 */}
-              {models.length > 0 && (
-                <div className="pt-2 mt-2 border-t">
-                  <div className="text-sm font-semibold text-gray-700 mb-2">라인별 모델:</div>
-                  {getLineModelDetails().slice(0, 3).map((lineDetail, index) => (
-                    <div key={index} className="text-xs text-gray-600 mb-1 p-1 bg-gray-50 rounded">
-                      <div className="font-medium">Line {lineDetail.lineIndex + 1}: {lineDetail.model.category} - {lineDetail.model.modelName}</div>
-                      <div className="flex justify-between">
-                        <span>총 인원: {lineDetail.totalManpower}명</span>
-                        <span>LM: {lineDetail.vsmRequired}명</span>
-                      </div>
-                    </div>
-                  ))}
-                  {getLineModelDetails().length > 3 && (
-                    <div className="text-xs text-gray-500">
-                      +{getLineModelDetails().length - 3}개 라인 더...
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
-        {/* 사용법 안내 (오른쪽 하단) */}
-        <div className="fixed right-8 bottom-8 mb-80 bg-blue-50 p-3 rounded-lg shadow-sm border border-blue-200 text-xs max-w-[200px]">
-          <div className="font-semibold text-blue-800 mb-1">💡 사용법</div>
-          <div className="text-blue-700">
-            • ReactFlow 내장 컨트롤 사용<br/>
-            • 마우스 휠: 줌 인/아웃<br/>
-            • 드래그: 화면 이동<br/>
-            • 노드 드래그: 노드 이동<br/>
-            • 미니맵: 전체 뷰 탐색<br/>
-            • 설정 변경 시 자동 업데이트
-          </div>
-        </div>
+
       </div>
     </div>
   );
