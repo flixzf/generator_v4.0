@@ -246,18 +246,7 @@ const Page3: React.FC = () => {
         </div>
       </div>
 
-      {/* 사용법 안내 (오른쪽 하단) */}
-      <div className="fixed right-8 bottom-8 mb-80 bg-blue-50 p-3 rounded-lg shadow-sm border border-blue-200 text-xs max-w-[200px]">
-        <div className="font-semibold text-blue-800 mb-1">💡 사용법</div>
-        <div className="text-blue-700">
-          • ReactFlow 내장 컨트롤 사용<br/>
-          • 마우스 휠: 줌 인/아웃<br/>
-          • 드래그: 화면 이동<br/>
-          • 노드 드래그: 노드 이동<br/>
-          • 미니맵: 전체 뷰 탐색<br/>
-          • 설정 변경 시 자동 업데이트
-        </div>
-      </div>
+
     </div>
   );
 };

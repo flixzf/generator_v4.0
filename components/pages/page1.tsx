@@ -784,8 +784,8 @@ const Page1: React.FC = () => {
           />
         </div>
 
-        {/* 색상 범례 - 설정 패널 아래 */}
-        <div className="fixed right-8 top-32 flex flex-row gap-2 z-50">
+        {/* 색상 범례 - 우측 하단 */}
+        <div className="fixed right-8 bottom-8 flex flex-row gap-2 z-50">
           <div className="bg-gray-50 border-2 border-dashed border-gray-400 px-4 py-2 rounded-lg shadow-sm">
             <span className="text-sm font-semibold text-black">Direct</span>
           </div>
@@ -797,8 +797,8 @@ const Page1: React.FC = () => {
           </div>
         </div>
         
-        {/* 인원 요약 정보 패널 - 색상 범례 아래 */}
-        <div className="fixed right-8 top-48 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
+        {/* 인원 요약 정보 패널 - 설정 패널 아래 */}
+        <div className="fixed right-8 top-32 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
           <div className="font-semibold text-lg mb-2">인원 요약</div>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
