@@ -545,7 +545,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               colorCategory: 'indirect',
               // 병합된 노드에 대한 추가 정보
               isMerged: isStockfitAssembly,
-              sourceProcesses: isStockfitAssembly ? processGroup.sourceProcesses : undefined
+              sourceProcesses: isStockfitAssembly && 'sourceProcesses' in processGroup ? processGroup.sourceProcesses : undefined
             },
           });
           

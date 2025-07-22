@@ -43,7 +43,7 @@ export default function ProcessCalculationTest() {
           (group: any) => group.gl?.subtitle?.includes('Stockfit-Assembly')
         );
         
-        if (mergedGroup && mergedGroup.sourceProcesses) {
+        if (mergedGroup && 'sourceProcesses' in mergedGroup && mergedGroup.sourceProcesses) {
           const { stockfit, assembly } = mergedGroup.sourceProcesses;
           
           // Extract the total manpower from the subtitle (format: "Stockfit-Assembly [X]")

@@ -695,7 +695,7 @@ const Page1: React.FC = () => {
           total += group.tlGroup.length;
         } else if (position === "TM") {
           // TM은 그룹 내 모든 TM 포함
-          if (isStockfitAssembly && group.sourceProcesses) {
+          if (isStockfitAssembly && 'sourceProcesses' in group && group.sourceProcesses) {
             // 병합된 노드의 경우 실제 인원수 계산
             const stockfitManpower = group.sourceProcesses.stockfit.reduce(
               (sum: number, p: any) => sum + (p.manAsy || 0), 0
