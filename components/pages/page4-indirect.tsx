@@ -7,7 +7,7 @@ import { Node } from 'reactflow';
 type NodeData = {
   colorCategory: 'OH' | 'indirect' | 'direct' | 'blank';
   department: string;
-  level: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM' | 'DEPT';
+  level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT';
   isDeptName?: boolean;
 };
 
@@ -52,8 +52,8 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const selectedModel = models[modelIndex];
     if (!selectedModel) return;
 
-    // VSM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'VSM', colorCategory: 'OH' } });
+    // LM 노드
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'LM', colorCategory: 'OH' } });
     
     // 메인 공정 노드들
     const { mainProcesses } = getProcessGroups_p1(config, selectedModel, lineIndex);
@@ -83,8 +83,8 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
   if (linesWithNosew.length > 0) {
     const shiftCols = config.shiftsCount || 1;
     
-    // 빈 VSM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'VSM', colorCategory: 'blank' } });
+    // 빈 LM 노드
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: 'blank' } });
     
     // GL 노드들
     for (let i = 0; i < shiftCols; i++) {
@@ -103,8 +103,8 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
   if (linesWithHfWelding.length > 0) {
     const hfCols = config.shiftsCount || 1;
     
-    // 빈 VSM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'VSM', colorCategory: 'blank' } });
+    // 빈 LM 노드
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: 'blank' } });
     
     // TL 노드들 (각 라인별로)
     linesWithHfWelding.forEach(() => {
@@ -328,7 +328,7 @@ const generateNodesForPage3 = (config: any): CustomNode[] => {
 // =================================================================
 
 const SummaryTable = ({ title, data, laborType }: { title: string; data: Summary; laborType: string }) => {
-  const levels = ["PM", "VSM", "GL", "TL", "TM"];
+  const levels = ["PM", "LM", "GL", "TL", "TM"];
   
   // Plant와 Supporting Team 부서 분류
   const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production", "FG WH"];
@@ -414,7 +414,7 @@ export default function Page4Indirect() {
 
     const indirectSummary: Summary = {};
     const overheadSummary: Summary = {};
-    const levels = ["PM", "VSM", "GL", "TL", "TM", "DEPT"];
+    const levels = ["PM", "LM", "GL", "TL", "TM", "DEPT"];
     
     // Plant와 Supporting Team 부서 분류
     const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production", "FG WH"];
@@ -456,8 +456,8 @@ export default function Page4Indirect() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Aggregation Page-indirect+OH</h1>
-      <SummaryTable title="# VSM Plant Indirect Summary" data={indirectSummary} laborType="Indirect" />
-      <SummaryTable title="# VSM Plant Over Head Summary" data={overheadSummary} laborType="Overhead" />
+      <SummaryTable title="# LM Plant Indirect Summary" data={indirectSummary} laborType="Indirect" />
+      <SummaryTable title="# LM Plant Over Head Summary" data={overheadSummary} laborType="Overhead" />
     </div>
   );
 } 

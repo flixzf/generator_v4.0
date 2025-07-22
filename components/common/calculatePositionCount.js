@@ -1,7 +1,7 @@
 // Helper function for calculating position counts
 export function calculatePositionCount(position, config, getProcessGroups) {
   if (position === "MGL") return 1;
-  if (position === "VSM") return config.lineCount;
+  if (position === "LM") return config.lineCount;
   
   // 모델 기반 인원 계산
   let total = 0;

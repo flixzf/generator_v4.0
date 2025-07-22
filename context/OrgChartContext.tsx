@@ -23,7 +23,7 @@ type Department = {
   tl?: string[];     // page2의 tl 참조용
   tm?: string[][];   // page2의 tm 참조용
   PM: number;
-  VSM: number;
+  LM: number;
   GL: number;
   TL: number;
   TM: number;
@@ -67,7 +67,7 @@ type OrgChartData = {
   updateModel: (modelIndex: number, model: ModelData) => void;
   addModel: (model: ModelData) => void;
   removeModel: (modelIndex: number) => void;
-  getTotalByPosition: (position: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM') => number;
+  getTotalByPosition: (position: 'PM' | 'LM' | 'GL' | 'TL' | 'TM') => number;
   lineModelSelections: number[];
   updateLineModelSelection: (lineIndex: number, modelIndex: number) => void;
 };
@@ -109,9 +109,9 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Stockfit TM'],
       ['Assembly Input', 'Assembly Cementing', 'Assembly Finishing']
     ],
-    PM: 1,
-    VSM: 1,
-    GL: 1,
+          PM: 1,
+      LM: 1,
+      GL: 1,
     TL: 4,
     TM: 6
   },
@@ -121,7 +121,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: [],
     tm: [['Payroll'], ['APS'], ['Material'], ['Production'], ['GMES']],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: Array.isArray(['Admin']) ? 0 : 1,
     TL: [].length,
     TM: [['Payroll'], ['APS'], ['Material'], ['Production'], ['GMES']].length
@@ -132,7 +132,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['Small Tooling'],
     tm: [['Cutting Die'], ['Pallet'], ['Pad/Mold']],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: Array.isArray(['Small Tooling']) ? 0 : 1,
     TL: ['Small Tooling'].length,
     TM: [['Cutting Die'], ['Pallet'], ['Pad/Mold']].length
@@ -143,7 +143,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['Incoming', 'Distribution'],
     tm: [['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,
     TL: 2,
     TM: 4
@@ -154,7 +154,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['SAP RO'],
     tm: [['Incoming Mgmt.'], ['Distribution']],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,
     TL: 1,
     TM: 2
@@ -165,7 +165,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['Incoming', 'Distribution'],
     tm: [['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,
     TL: 2,
     TM: 4
@@ -176,7 +176,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['Stencil 1-2', 'Stencil 3-4', 'Stencil 5-6'],
     tm: [['Incoming'], ['Setting'], ['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,
     TL: 3,
     TM: 6
@@ -191,7 +191,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Airbag 1-2'], ['Airbag 3-4'], ['Airbag 5-6'], ['Airbag 7-8']
     ],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,
     TL: 3,
     TM: 8
@@ -207,7 +207,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Report'], ['Metal Detect']
     ],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,
     TL: 2,
     TM: 6
@@ -219,7 +219,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['QA', 'MA'],
     tm: [[]],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 2,
     TM: 17  // QA TM 16명 + MA TM 1명
@@ -232,7 +232,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['Mixing', 'Assembly Control'],
     tm: [[]],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 2,
     TM: 2
@@ -243,7 +243,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: ['Stitching', 'Cutting & Stockfit·Assembly', 'CMMS & Electricity'],
     tm: [[]],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 3,
     TM: 3
@@ -254,7 +254,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: [],
     tm: [[]],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 0,
     TM: 0
@@ -265,7 +265,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: [],  // TL 없음
     tm: [[]],  // 빈 배열로 초기화 (실제 값은 calculateLeanDepartment에서 설정)
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,  // GL 1명 고정
     TL: 0,  // TL 없음
     TM: 0   // 초기값 0 (실제 값은 calculateLeanDepartment에서 계산)
@@ -276,7 +276,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: [],
     tm: [[]],  // 빈 배열로 초기화 (실제 값은 calculateSecurityDepartment에서 설정)
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,  // GL 없음
     TL: 0,
     TM: 0   // 초기값 0 (실제 값은 calculateSecurityDepartment에서 계산)
@@ -287,7 +287,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     tl: [],
     tm: [['Solid Waste']],  // 1명 고정
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,  // GL 없음
     TL: 0,
     TM: 1
@@ -333,7 +333,7 @@ const calculateDepartment = (
     tl: prev?.tl || initial.tl,
     tm: prev?.tm || initial.tm,
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: glCount,
     TL: prev?.tl?.length || initial.tl?.length || 0,
     TM: tmCount
@@ -349,7 +349,7 @@ const calculateLeanDepartment = (config: Config): Department => {
     tl: [],
     tm: [makeDoubleLines(config.lineCount).map(line => `Line ${line}`)],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 0,
     TM: tmCount
@@ -375,7 +375,7 @@ const calculateQualityDepartment = (config: Config): Department => {
       ['HEPA MA 검사-1', 'HEPA MA 검사-2', 'MQAA Audit-1', 'MQAA Audit-2']
     ],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 2,
     TM: qaTmCount + maTmCount  // QA TM + MA TM
@@ -399,7 +399,7 @@ const calculateCEDepartment = (config: Config): Department => {
     tl: ['Mixing', 'Assembly Control'],
     tm: tmArray,
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 2,
     TM: mixingTmCount + assemblyTmCount  // 실제 TM 수 계산
@@ -433,7 +433,7 @@ const calculateTPMDepartment = (config: Config): Department => {
       ['CMMS', 'Electricity']
     ],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 1,
     TL: 3,
     TM: stitchingTmCount + cuttingStockfitTmCount + cmmsTmCount + electricityTmCount
@@ -548,7 +548,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         ['Assembly Input', 'Assembly Cementing', 'Assembly Finishing']
       ],
       PM: 1,
-      VSM: Math.ceil(config.lineCount / 2),  // 2개 라인당 1명의 VSM
+      LM: Math.ceil(config.lineCount / 2),  // 2개 라인당 1명의 LM
       GL: 4 * config.lineCount,  // lineCount당 4명의 GL
       TL: calculateTotalTL(config),  // config 기반으로 TL 계산
       TM: calculateTotalTM(config)   // config 기반으로 TM 계산
@@ -565,7 +565,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: adminTL,  // 수정된 tl 배열 사용
       tm: [['Payroll'], ['APS'], ['Material'], ['Production'], ['GMES']],
       PM: 1,
-      VSM: 0,
+      LM: 0,
       GL: Array.isArray(['Admin']) ? 0 : 1,
       TL: adminTL.length,
       TM: 5 + adminLinesCount // 기타 계산 로직
@@ -581,7 +581,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: dept.tm,
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1, // title이 배열이면 0, 문자열이면 1
         TL: dept.tl?.length || 1, // TL 배열의 크기
         TM: dept.tm?.length || 3 // TM 배열의 크기 (Cutting Die, Pallet, Pad/Mold)
@@ -595,7 +595,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['Small Tooling'], // 1개 요소로 초기화
       tm: [['Cutting Die'], ['Pallet'], ['Pad/Mold']], // 3개 요소로 초기화
       PM: 0,
-      VSM: 0, 
+      LM: 0, 
       GL: 0, // title이 배열이므로 0
       TL: 1,
       TM: 3
@@ -623,7 +623,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: 0,
         TM: config.lineCount
@@ -636,7 +636,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['Incoming', 'Distribution'],
       tm: generateTmLines(config.lineCount),
       PM: 0,
-      VSM: 0,
+      LM: 0,
       GL: 0,
       TL: 0,
       TM: config.lineCount
@@ -652,7 +652,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: dept.tm,
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: dept.tl?.length || 1,
         TM: dept.tm?.length || 2
@@ -665,7 +665,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['SAP RO'],
       tm: [['Incoming Mgmt.'], ['Distribution']],
       PM: 0,
-      VSM: 0,
+      LM: 0,
       GL: 0,
       TL: 1,
       TM: 2
@@ -695,7 +695,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: dept.tl?.length || 1,
         TM: config.lineCount
@@ -708,7 +708,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ["Line"],
       tm: generateTmLines(config.lineCount),
       PM: 0,
-      VSM: 0,
+      LM: 0,
       GL: 0,
       TL: 1,
       TM: config.lineCount
@@ -740,7 +740,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: 1,
         TL: dept.tl?.length || 1,
         TM: computedTM
@@ -753,7 +753,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['Incoming & Setting'],
       tm: generateTmLines(config.lineCount),
       PM: 0,
-      VSM: 0,
+      LM: 0,
       GL: 1,
       TL: 1,
       TM: computedTM
@@ -785,7 +785,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: Array.isArray(dept.title) ? 0 : 1,
         TL: dept.tl?.length || 1,
         TM: computedTM
@@ -798,7 +798,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['Bottom Market'],
       tm: generateTmLines(config.lineCount),
       PM: 0,
-      VSM: 0,
+      LM: 0,
       GL: 0,
       TL: 1,
       TM: computedTM
@@ -827,7 +827,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
         tl: dept.tl,
         tm: generateTmLines(computedTM),
         PM: 0,
-        VSM: 0,
+        LM: 0,
         GL: 1,
         TL: 1,          // TL은 1로 고정
         TM: computedTM  // TM은 (라인수 * 2) + 2로 계산
@@ -840,7 +840,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['Shipping'],
       tm: generateTmLines(computedTM),
       PM: 0,
-      VSM: 0,
+      LM: 0,
       GL: 1,
       TL: 1,          // TL은 1로 고정
       TM: computedTM  // TM은 (라인수 * 2) + 2로 계산
@@ -947,7 +947,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 직급별 총합 계산 함수
-  const getTotalByPosition = (position: 'PM' | 'VSM' | 'GL' | 'TL' | 'TM'): number => {
+  const getTotalByPosition = (position: 'PM' | 'LM' | 'GL' | 'TL' | 'TM'): number => {
     return Object.values(departments).reduce((sum: number, dept: any) => sum + dept[position], 0);
   };
 
@@ -1014,7 +1014,7 @@ const calculateSecurityDepartment = (config: Config): Department => {
     tl: [],
     tm: [Array.from({ length: config.gateCount }, (_, i) => `Gate ${i + 1}`)],
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,  // GL 없음
     TL: 0,
     TM: config.gateCount
@@ -1029,7 +1029,7 @@ const calculateRMCCDepartment = (): Department => {
     tl: [],
     tm: [['Solid Waste']],  // 1명 고정
     PM: 0,
-    VSM: 0,
+    LM: 0,
     GL: 0,  // GL 없음
     TL: 0,
     TM: 1

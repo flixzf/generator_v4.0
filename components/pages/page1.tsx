@@ -4,7 +4,7 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import {
   PositionBox,
-  VSMGroup,
+  LMGroup,
   Boundary,
 } from "@/components/common/OrganizationTree";
 import { useOrgChart } from "@/context/OrgChartContext";
@@ -489,7 +489,7 @@ const Page1: React.FC = () => {
     const columnsToRender = columns.filter(col => col.lines.length > 0);
     if (columnsToRender.length === 0) return null;
 
-    // PM 박스 높이 (80px) + 간격 + VSM 박스 높이 (80px) + 간격을 계산하여 GL 레벨 맞춤
+    // PM 박스 높이 (80px) + 간격 + LM 박스 높이 (80px) + 간격을 계산하여 GL 레벨 맞춤
     const pmHeight = 80;
     const vsmHeight = 80;
     const verticalGap = spacingConfig.verticalHierarchy;
@@ -667,8 +667,8 @@ const Page1: React.FC = () => {
   const calculatePositionCount = (position: string): number => {
     if (position === "PM") return 1;
     
-    if (position === "VSM") {
-      // VSM은 항상 라인당 1명으로 고정
+    if (position === "LM") {
+      // LM은 항상 라인당 1명으로 고정
       return config.lineCount;
     }
     
@@ -742,7 +742,7 @@ const Page1: React.FC = () => {
         lineIndex,
         model,
         totalManpower: model.processes.reduce((total: number, process: any) => total + process.manAsy, 0),
-        vsmRequired: 1 // VSM은 항상 1명으로 고정
+        vsmRequired: 1 // LM은 항상 1명으로 고정
       };
     });
   };
@@ -754,14 +754,14 @@ const Page1: React.FC = () => {
     return models.map(model => ({
       ...model,
       totalManpower: model.processes.reduce((total: number, process: any) => total + process.manAsy, 0),
-      vsmRequired: 1 // VSM은 항상 1명으로 고정
+      vsmRequired: 1 // LM은 항상 1명으로 고정
     }));
   };
 
   // 인원 요약 계산
   const positionCounts = {
     PM: calculatePositionCount("PM"),
-    VSM: calculatePositionCount("VSM"),
+    LM: calculatePositionCount("LM"),
     GL: calculatePositionCount("GL"),
     TL: calculatePositionCount("TL"),
     TM: calculatePositionCount("TM")
@@ -823,8 +823,8 @@ const Page1: React.FC = () => {
               <span>{positionCounts.PM}명</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium">VSM:</span>
-              <span>{positionCounts.VSM}명</span>
+              <span className="font-medium">LM:</span>
+              <span>{positionCounts.LM}명</span>
             </div>
             <div className="flex justify-between">
               <span className="font-medium">GL:</span>
@@ -994,9 +994,9 @@ const Page1: React.FC = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-semibold">VSM:</span>
+                <span className="font-semibold">LM:</span>
                 <div className="bg-gray-100 px-3 py-0.5 rounded">
-                  {calculatePositionCount("VSM")}
+                  {calculatePositionCount("LM")}
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -1033,7 +1033,7 @@ const Page1: React.FC = () => {
                       <div className="font-medium">Line {lineDetail.lineIndex + 1}: {lineDetail.model.category} - {lineDetail.model.modelName}</div>
                       <div className="flex justify-between">
                         <span>총 인원: {lineDetail.totalManpower}명</span>
-                        <span>VSM: {lineDetail.vsmRequired}명</span>
+                        <span>LM: {lineDetail.vsmRequired}명</span>
                       </div>
                     </div>
                   ))}

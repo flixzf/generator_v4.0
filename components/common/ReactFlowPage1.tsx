@@ -455,7 +455,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
     globalMaxTLCount = Math.max(globalMaxTLCount, linesWithNosew.length, linesWithHfWelding.length);
 
-    // ===== 4. VSM 노드 생성 (2개 라인당 1명) =====
+    // ===== 4. LM 노드 생성 (2개 라인당 1명) =====
     const vsmCount = Math.ceil(config.lineCount / 2);
     const vsmIds: string[] = [];
 
@@ -463,7 +463,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const startLineIndex = vsmIndex * 2;
       const endLineIndex = Math.min(startLineIndex + 1, config.lineCount - 1);
 
-      // VSM이 관리하는 라인들의 모델 정보 수집
+      // LM이 관리하는 라인들의 모델 정보 수집
       const managedLines = [];
       for (let lineIdx = startLineIndex; lineIdx <= endLineIndex; lineIdx++) {
         const modelIndex = effectiveLineModelSelections[lineIdx] || 0;
@@ -478,14 +478,14 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const vsmId = getNextId();
       vsmIds.push(vsmId);
 
-      // VSM 제목 생성
+      // LM 제목 생성
       const lineRange = startLineIndex === endLineIndex
         ? `Line ${startLineIndex + 1}`
         : `Line ${startLineIndex + 1}-${endLineIndex + 1}`;
       const totalManpower = managedLines.reduce((sum: number, line: any) => sum + line.manpower, 0);
       const vsmSubtitle = `${lineRange} [${totalManpower}명]`;
 
-      // VSM 위치 계산 (관리하는 라인들의 중앙)
+      // LM 위치 계산 (관리하는 라인들의 중앙)
       const vsmX = managedLines.reduce((sum: number, line: any) => {
         const lineX = lineWidths.slice(0, line.lineIndex).reduce((acc, w) => acc + w, 0);
         return sum + lineX + lineWidths[line.lineIndex] / 2;
@@ -495,7 +495,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         id: vsmId,
         type: 'position',
         position: { x: vsmX, y: levelHeight },
-        data: { title: 'VSM', subtitle: vsmSubtitle, level: 1, colorCategory: 'OH' },
+        data: { title: 'LM', subtitle: vsmSubtitle, level: 1, colorCategory: 'OH' },
       });
 
       edges.push({
@@ -518,7 +518,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const glStartX = lineX + (linePadding / 2);
       const glY = levelHeight * 2;
 
-      // 해당 라인을 관리하는 VSM 찾기
+      // 해당 라인을 관리하는 LM 찾기
       const vsmIndex = Math.floor(lineIndex / 2);
       const managingVsmId = vsmIds[vsmIndex];
 
@@ -688,10 +688,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         }
       });
 
-      const blankVSMId = getNextId();
-      nodes.push({ id: blankVSMId, type: 'position', position: { x: currentSeparatedX + (totalCols - 1) * glSpacing / 2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' } });
-      edges.push({ id: `edge-${topConnectionNodeId}-${blankVSMId}`, source: topConnectionNodeId, target: blankVSMId, type: 'smoothstep' });
-      glIds.forEach(glId => edges.push({ id: `edge-${blankVSMId}-${glId}`, source: blankVSMId, target: glId, type: 'smoothstep' }));
+      const blankLMId = getNextId();
+      nodes.push({ id: blankLMId, type: 'position', position: { x: currentSeparatedX + (totalCols - 1) * glSpacing / 2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' } });
+      edges.push({ id: `edge-${topConnectionNodeId}-${blankLMId}`, source: topConnectionNodeId, target: blankLMId, type: 'smoothstep' });
+      glIds.forEach(glId => edges.push({ id: `edge-${blankLMId}-${glId}`, source: blankLMId, target: glId, type: 'smoothstep' }));
 
       // TL 생성 및 연결 (수직 체인 연결)
       const columnTLHistory: { [colIndex: number]: string[] } = {}; // 각 열의 TL ID 히스토리
@@ -761,9 +761,9 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const hfCols = config.shiftsCount || 1;
       const hfXs = Array.from({ length: hfCols }, (_, i) => currentSeparatedX + i * glSpacing);
 
-      const blankVSMId = getNextId();
-      nodes.push({ id: blankVSMId, type: 'position', position: { x: currentSeparatedX + (hfCols - 1) * glSpacing / 2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' } });
-      edges.push({ id: `edge-${topConnectionNodeId}-${blankVSMId}`, source: topConnectionNodeId, target: blankVSMId, type: 'smoothstep' });
+      const blankLMId = getNextId();
+      nodes.push({ id: blankLMId, type: 'position', position: { x: currentSeparatedX + (hfCols - 1) * glSpacing / 2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' } });
+      edges.push({ id: `edge-${topConnectionNodeId}-${blankLMId}`, source: topConnectionNodeId, target: blankLMId, type: 'smoothstep' });
 
       const colTopTlIds: (string | null)[] = Array(hfCols).fill(null);
       let colLastNodeIds: (string | null)[] = Array(hfCols).fill(null);
@@ -778,7 +778,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           nodes.push({ id: tlId, type: 'position', position: { x: xPos, y: tlStartY + yOffset }, data: { title: 'TL', subtitle: `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`, manpower: manpower, level: 3, colorCategory: 'indirect' } });
 
           if (i === 0) {
-            edges.push({ id: `edge-${blankVSMId}-${tlId}`, source: blankVSMId, target: tlId, type: 'smoothstep' });
+            edges.push({ id: `edge-${blankLMId}-${tlId}`, source: blankLMId, target: tlId, type: 'smoothstep' });
             colTopTlIds[colIdx] = tlId;
           } else {
             const aboveTlId = nodes.find(n => n.position.x === xPos && n.position.y === tlStartY + (i - 1) * 80)?.id;
@@ -795,7 +795,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           const tmId = getNextId();
           nodes.push({ id: tmId, type: 'position', position: { x: xPos, y: globalTMStartY + g * 80 }, data: { title: 'TM(MH)', subtitle: `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`, level: 4, colorCategory: 'indirect' } });
 
-          const sourceNodeId = colLastNodeIds[colIdx] || blankVSMId;
+          const sourceNodeId = colLastNodeIds[colIdx] || blankLMId;
           edges.push({ id: `edge-${sourceNodeId}-${tmId}`, source: sourceNodeId, target: tmId, type: 'smoothstep' });
           colLastNodeIds[colIdx] = tmId;
         }

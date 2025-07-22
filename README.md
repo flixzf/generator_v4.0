@@ -71,7 +71,7 @@ generator_v4.0/
   - 조직도 트리 구조, 직책 박스(`PositionBox`), 연결선, 계층별 배치 등 시각화의 핵심.
   - `OrganizationTree` 컴포넌트: 페이지별 조직도 트리 렌더링.
   - `PositionBox`: 직책(예: GL, TL, TM 등) 박스 UI.
-  - `VSMGroup`, `MultiColumnDepartmentSection`: 라인/부서별 그룹화 및 배치.
+  - `LMGroup`, `MultiColumnDepartmentSection`: 라인/부서별 그룹화 및 배치.
   - `getProcessGroups`, `calculatePositionCount` 등: 공정/직책별 데이터 가공.
 
 - **ReactFlowOrgChart.tsx**
@@ -103,7 +103,7 @@ generator_v4.0/
 - `OrgChartProvider`: 전체 앱에 데이터/상태 제공.
 - `useOrgChart`: 조직도 데이터, 부서/공정/모델 정보, 인원 집계 등 제공.
 - 부서/공정/모델별 데이터 구조, 인원 계산 함수 등 포함.
-- **주요 직책 구조**: PM(Project Manager), VSM(Value Stream Manager), GL(Group Leader), TL(Team Leader), TM(Team Member) 등의 계층 구조로 조직.
+- **주요 직책 구조**: PM(Project Manager), LM(Line Manager), GL(Group Leader), TL(Team Leader), TM(Team Member) 등의 계층 구조로 조직.
 
 ### 5. `reference/`
 - 실제 조직도, 인원 분석 예시 데이터(CSV, 이미지 등).
@@ -115,7 +115,7 @@ generator_v4.0/
 - **getProcessGroups(config, selectedModel?)**  
   공정/모델 데이터 기반으로 GL, TL, TM 등 계층별 그룹을 생성.
 - **calculatePositionCount(position)**  
-  각 직책(PM, VSM, GL, TL, TM)별 인원 수 계산.
+  각 직책(PM, LM, GL, TL, TM)별 인원 수 계산.
 - **useInteractivePositionBox()**  
   박스 선택/하이라이트/편집 등 상호작용 상태 관리.
 - **generateNodes(), generateEdges()**  

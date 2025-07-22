@@ -24,7 +24,7 @@ export const DEFAULT_SPACING = {
 
 /**
  * Page1용 spacing 설정
- * - VSM 그룹 간 표준 간격 사용
+ * - LM 그룹 간 표준 간격 사용
  */
 export function getPage1SpacingConfig(): SpacingConfig {
   return {

@@ -95,8 +95,8 @@ export const MGLConnector: React.FC<{ lineCount: number }> = ({ lineCount }) => 
   const [vsmPositions, setVsmPositions] = useState<number[]>([]);
   const connectorRef = useRef<HTMLDivElement>(null);
 
-  // VSM 박스들의 위치를 계산하는 함수
-  const calculateVSMPositions = () => {
+  // LM 박스들의 위치를 계산하는 함수
+  const calculateLMPositions = () => {
     const vsmElements = document.querySelectorAll('[data-vsm-box="true"]');
     if (!connectorRef.current || vsmElements.length === 0) return;
 
@@ -108,9 +108,9 @@ export const MGLConnector: React.FC<{ lineCount: number }> = ({ lineCount }) => 
     setVsmPositions(positions);
   };
 
-  // VSM 박스들이 렌더링된 후 위치 계산
+  // LM 박스들이 렌더링된 후 위치 계산
   useEffect(() => {
-    const timer = setTimeout(calculateVSMPositions, 100);
+    const timer = setTimeout(calculateLMPositions, 100);
     return () => clearTimeout(timer);
   }, [lineCount]);
 
@@ -210,7 +210,7 @@ export const ConnectingLines: React.FC<{
   );
 };
 
-export interface VSMGroupProps {
+export interface LMGroupProps {
   vsm: { subtitle: string };
   config: Config;
   spacingConfig: {
@@ -230,7 +230,7 @@ export interface VSMGroupProps {
   showSeparatedProcesses?: boolean;
 }
 
-export const VSMGroup: React.FC<VSMGroupProps> = ({ 
+export const LMGroup: React.FC<LMGroupProps> = ({ 
   vsm, 
   config, 
   spacingConfig, 
@@ -560,11 +560,11 @@ export const VSMGroup: React.FC<VSMGroupProps> = ({
     <div className="flex flex-row items-start mx-8 gap-8">
       {/* 메인 공정 영역 (왼쪽) */}
       <div className="flex flex-col items-center">
-        {/* VSM 박스와 모델 선택 드롭다운 */}
+        {/* LM 박스와 모델 선택 드롭다운 */}
         <div className="flex flex-col items-center">
-          {createInteractiveBox("VSM", vsm.subtitle, 1, "OH", {
+          {createInteractiveBox("LM", vsm.subtitle, 1, "OH", {
             department: `Line ${(lineIndex || 0) + 1} 관리`,
-            manpower: 1, // VSM은 항상 1명으로 고정
+            manpower: 1, // LM은 항상 1명으로 고정
             responsibilities: ["라인 생산 관리", "품질 관리", "일정 관리"],
             processName: selectedModel ? `${selectedModel.category} - ${selectedModel.modelName}` : "모델 미선택",
             efficiency: 90,
@@ -595,7 +595,7 @@ export const VSMGroup: React.FC<VSMGroupProps> = ({
           )}
         </div>
         
-      {/* VSM과 GL 사이 간격 */}
+      {/* LM과 GL 사이 간격 */}
       <div style={{ height: `${spacingConfig.verticalHierarchy}px` }} />
       <div className="flex flex-row">
           {mainProcesses.map((group, idx) => {
@@ -860,7 +860,7 @@ export const OrganizationTree: React.FC<{ page?: string }> = ({ page = "1" }) =>
     return calculatePositionCount(position, config, getProcessGroups);
   };
 
-  const totalPeople = ["MGL", "VSM", "GL", "TL", "TM"].reduce(
+  const totalPeople = ["MGL", "LM", "GL", "TL", "TM"].reduce(
     (acc, pos) => acc + calculatePositionCountLocal(pos),
     0
   );
@@ -977,9 +977,9 @@ export const OrganizationTree: React.FC<{ page?: string }> = ({ page = "1" }) =>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-semibold">VSM:</span>
+              <span className="font-semibold">LM:</span>
               <div className="bg-gray-100 px-3 py-0.5 rounded">
-                {calculatePositionCountLocal("VSM")}
+                {calculatePositionCountLocal("LM")}
               </div>
             </div>
             <div className="flex items-center justify-between">

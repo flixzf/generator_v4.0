@@ -51,12 +51,12 @@ export const ReactFlowOrgChart: React.FC = () => {
     for (let lineIndex = 0; lineIndex < config.lineCount; lineIndex++) {
       const lineX = lineIndex * lineWidth;
 
-      // VSM 노드
+      // LM 노드
       nodes.push({
         id: `vsm-${lineIndex}`,
         type: 'position',
         position: { x: lineX + 300, y: levelHeight },
-        data: { title: 'VSM', subtitle: `Line ${lineIndex + 1}`, level: 1, colorCategory: 'indirect' },
+        data: { title: 'LM', subtitle: `Line ${lineIndex + 1}`, level: 1, colorCategory: 'indirect' },
       });
 
       // 각 공정 그룹별로 GL, TL, TM 생성
@@ -100,7 +100,7 @@ export const ReactFlowOrgChart: React.FC = () => {
   const generateEdges = (): Edge[] => {
     const edges: Edge[] = [];
 
-    // MGL -> VSM 연결
+    // MGL -> LM 연결
     for (let lineIndex = 0; lineIndex < config.lineCount; lineIndex++) {
       edges.push({
         id: `mgl-vsm-${lineIndex}`,
@@ -109,7 +109,7 @@ export const ReactFlowOrgChart: React.FC = () => {
         type: 'smoothstep',
       });
 
-      // VSM -> GL 연결
+      // LM -> GL 연결
       processGroups.forEach((group, groupIndex) => {
         edges.push({
           id: `vsm-gl-${lineIndex}-${groupIndex}`,
