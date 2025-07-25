@@ -142,7 +142,7 @@ const Page3: React.FC = () => {
       
       {/* 색상 범례 - 오른쪽 상단 */}
       <div className="fixed right-8 top-8 flex flex-row gap-2 z-50">
-        <div className="bg-gray-50 border border-gray-300 px-4 py-2 rounded-lg shadow-sm">
+        <div className="bg-gray-50 border-2 border-dashed border-gray-300 px-4 py-2 rounded-lg shadow-sm">
           <span className="text-sm font-semibold text-black">Direct</span>
         </div>
         <div className="bg-gray-200 border border-gray-400 px-4 py-2 rounded-lg shadow-sm">
