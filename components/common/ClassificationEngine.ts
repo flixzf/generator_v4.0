@@ -560,9 +560,6 @@ export class ClassificationEngine {
       // Ultimate fallback based on level hierarchy
       if (level) {
         switch (level) {
-          case 'PM':
-          case 'LM':
-            return 'OH';
           case 'GL':
             return 'indirect'; // Most GLs are indirect unless specific exceptions
           case 'TL':

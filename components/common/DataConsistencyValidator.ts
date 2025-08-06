@@ -194,7 +194,7 @@ export class DataConsistencyValidator {
         consistencyValidation,
         aggregationValidation,
         allDetailedPositions,
-        scenario
+        scenario || null
       );
 
       validationLogger.logInfo('Data consistency validation completed', {
@@ -212,7 +212,7 @@ export class DataConsistencyValidator {
       );
 
       // Return a fallback report
-      return this.createFallbackReport(scenario, error);
+      return this.createFallbackReport(scenario || null, error);
     }
   }
 
