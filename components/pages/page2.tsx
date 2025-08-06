@@ -8,6 +8,8 @@ import {
   type MultiColumnDepartmentSectionProps
 } from "@/components/common/OrganizationTree";
 import { useOrgChart, type Config } from "@/context/OrgChartContext";
+import { getColorCategory } from '@/components/common/ColorCategoryUtils';
+import { makeDoubleLines } from '@/components/common/LineUtils';
 import { GAPS, BACKGROUNDS, BORDERS, LAYOUTS, DEPARTMENT_GAPS, COMMON_STYLES, CONNECTORS } from '@/components/common/styles';
 import { getPage2SpacingConfig, getVerticalSpacing, getHorizontalSpacing } from "@/components/common/spacingConfig";
 import { ReactFlowPage2 } from "@/components/common/ReactFlowPage2";
@@ -76,9 +78,7 @@ const Page2: React.FC = () => {
   const makeSingleLines = (count: number, prefix: string = 'Line ') =>
     Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`);
 
-  // 2) 2라인씩 묶는 "Line 1-2", "Line 3-4", ... (홀수 남으면 단독)
-  const makeDoubleLines = (count: number, prefix: string = 'Line ') =>
-    Array.from({ length: Math.ceil(count / 2) }, (_, i) => `${prefix}${i * 2 + 1}-${i * 2 + 2 > count ? i * 2 + 1 : i * 2 + 2}`);
+  // Use centralized line utilities
 
   // FG WH Shipping TM 갯수 매핑 (라인 수 1~8 → 1,2,3,3,4,5,6,6)
   const getShippingTMCount = (lineCount: number) => {
@@ -408,43 +408,7 @@ const Page2: React.FC = () => {
     );
   };
 
-  // === 색상 카테고리 결정 함수 ===
-  const getColorCategory = (
-    deptTitle: string | string[], 
-    position: 'GL' | 'TL' | 'TM', 
-    subtitle?: string
-  ): 'direct' | 'indirect' | 'OH' => {
-    const deptName = Array.isArray(deptTitle) ? deptTitle[0] : deptTitle;
-    
-    // OH 색상이 되어야 할 조건들
-    // 1. Admin-TM전체 (Admin은 GL이 없으므로 GL일 때도 포함)
-    if (deptName === "Admin" && (position === "TM" || position === "GL")) {
-      return "OH";
-    }
-    
-    // 2. Small Tooling: GL/TL/TM
-    if (deptName === "Small Tooling" && (position === "GL" || position === "TL" || position === "TM")) {
-      return "OH";
-    }
-    
-    // 3. Sub Material: GL/TL/TM
-    if (deptName === "Sub Material" && (position === "GL" || position === "TL" || position === "TM")) {
-      return "OH";
-    }
-    
-    // 4. FG WH: shipping TM 만
-    if (deptName === "FG WH" && position === "TM" && subtitle?.includes("Shipping")) {
-      return "OH";
-    }
-    
-    // 5. Plant Production: TM (직접 생산 관련)
-    if (deptName === "Plant Production" && position === "TM") {
-      return "direct";
-    }
-    
-    // 나머지는 모두 indirect
-    return "indirect";
-  };
+  // Use centralized color category function
 
   // 간격 설정 패널 렌더링 (비활성화)
   const renderSpacingPanel = () => {
@@ -459,7 +423,7 @@ const Page2: React.FC = () => {
 
       {/* 색상 범례 - 오른쪽 상단 */}
       <div className="fixed right-8 top-8 flex flex-row gap-2 z-50">
-        <div className="bg-gray-50 border border-gray-300 px-4 py-2 rounded-lg shadow-sm">
+        <div className="bg-gray-50 border-2 border-dashed border-gray-400 px-4 py-2 rounded-lg shadow-sm">
           <span className="text-sm font-semibold text-black">Direct</span>
         </div>
         <div className="bg-gray-200 border border-gray-400 px-4 py-2 rounded-lg shadow-sm">

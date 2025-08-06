@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useOrgChart } from "@/context/OrgChartContext";
 import { ReactFlowPage3 } from "@/components/common/ReactFlowPage3";
+import { makeDoubleLines } from "@/components/common/LineUtils";
 import { ReactFlowInstance } from 'reactflow';
 
 const Page3: React.FC = () => {
@@ -56,21 +57,7 @@ const Page3: React.FC = () => {
     };
   }, [isDragging]);
 
-  // 2라인씩 묶는 유틸리티 함수
-  const makeDoubleLines = (count: number, prefix: string = 'Line ') => {
-    const result: string[] = [];
-    let i = 1;
-    while (i <= count) {
-      if (i + 1 <= count) {
-        result.push(`${prefix}${i}-${i + 1}`);
-        i += 2;
-      } else {
-        result.push(`${prefix}${i}`);
-        i += 1;
-      }
-    }
-    return result;
-  };
+  // Use centralized line utilities
 
   // === 인원 수 계산 함수 ===
   const calculatePositionCount = (position: string): number => {
@@ -142,7 +129,7 @@ const Page3: React.FC = () => {
       
       {/* 색상 범례 - 오른쪽 상단 */}
       <div className="fixed right-8 top-8 flex flex-row gap-2 z-50">
-        <div className="bg-gray-50 border border-gray-300 px-4 py-2 rounded-lg shadow-sm">
+        <div className="bg-gray-50 border-2 border-dashed border-gray-400 px-4 py-2 rounded-lg shadow-sm">
           <span className="text-sm font-semibold text-black">Direct</span>
         </div>
         <div className="bg-gray-200 border border-gray-400 px-4 py-2 rounded-lg shadow-sm">

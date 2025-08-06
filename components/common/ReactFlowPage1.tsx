@@ -11,6 +11,7 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
 import { nodeTypes } from './CustomPositionNode';
+import { classifyPosition } from './ClassificationEngine';
 
 // getProcessGroups 함수 - 모델 데이터 기반 공정 분리 기능
 export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number, context: 'display' | 'calculation' = 'display') {
@@ -30,8 +31,8 @@ export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: n
             gl: { subtitle: "Stockfit-Assembly", count: 1 },
             tlGroup: [
               { subtitle: "Stockfit" },
-              { subtitle: "Input" }, 
-              { subtitle: "Cementing" }, 
+              { subtitle: "Input" },
+              { subtitle: "Cementing" },
               { subtitle: "Finishing" }
             ],
             tmGroup: [
@@ -203,7 +204,7 @@ export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: n
   const stockfitProcesses = allProcesses.filter((process: any) =>
     process?.name && process.name.toLowerCase().includes('stockfit')
   );
-  
+
   const assemblyProcesses = allProcesses.filter((process: any) => {
     if (!process?.name) return false;
     const name = process.name.toLowerCase();
@@ -218,10 +219,10 @@ export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: n
   // Calculate manpower for both process groups
   const stockfitManpower = stockfitProcesses.reduce((sum: number, process: any) =>
     sum + (process.manAsy || 0), 0);
-  
+
   const assemblyGLManpower = assemblyProcesses.reduce((sum: number, process: any) =>
     sum + (process.manAsy || 0), 0);
-  
+
   const totalManpower = stockfitManpower + assemblyGLManpower;
 
   if (context === 'display') {
@@ -230,16 +231,16 @@ export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: n
       const shifts = [];
       const miniLineCount = process.miniLine || 1;
       for (let i = 1; i <= miniLineCount; i++) {
-        const subtitle = miniLineCount > 1 ? `${process.name} ${i} (Stockfit)` : `${process.name} (Stockfit)`;
+        const subtitle = miniLineCount > 1 ? `${process.name} ${i}` : `${process.name}`;
         shifts.push({ subtitle, manpower: process.manStt });
       }
       return shifts;
     });
 
     const assemblyTLGroup = [
-      { subtitle: "Input (Assembly)" },
-      { subtitle: "Cementing (Assembly)" },
-      { subtitle: "Finishing (Assembly)" }
+      { subtitle: "Assembly (Input)" },
+      { subtitle: "Assembly (Cementing)" },
+      { subtitle: "Assembly (Finishing)" }
     ];
 
     // Merge TL groups
@@ -319,7 +320,7 @@ export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: n
 }
 
 // No-sew와 HF Welding을 위한 분리된 공정 그룹
-function getSeparatedProcesses(selectedModel?: any, config?: any) {
+export function getSeparatedProcesses(selectedModel?: any, config?: any) {
   if (!selectedModel || !config) return [];
 
   const separatedProcessNames = ['cutting no-sew', 'hf welding', 'no-sew'];
@@ -422,7 +423,12 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       id: pmId,
       type: 'position',
       position: { x: pmX, y: 0 },
-      data: { title: 'PM', subtitle: 'Plant Manager', level: 0, colorCategory: 'OH' },
+      data: {
+        title: 'PM',
+        subtitle: 'Plant Manager',
+        level: 0,
+        colorCategory: classifyPosition('Line', 'PM', undefined, 'Plant Manager', 'PM')
+      },
     });
 
     // ===== 3. 모든 라인 중 최대 TL 개수 계산 (TM 시작 Y 정렬용) =====
@@ -495,7 +501,12 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         id: vsmId,
         type: 'position',
         position: { x: vsmX, y: levelHeight },
-        data: { title: 'LM', subtitle: vsmSubtitle, level: 1, colorCategory: 'OH' },
+        data: {
+          title: 'LM',
+          subtitle: vsmSubtitle,
+          level: 1,
+          colorCategory: classifyPosition('Line', 'LM', undefined, vsmSubtitle, 'LM')
+        },
       });
 
       edges.push({
@@ -530,10 +541,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
         if (processGroup.showGL !== false) {
           glId = getNextId();
-          
+
           // 노드 생성 - 병합된 Stockfit-Assembly GL 노드 처리
           const isStockfitAssembly = processGroup.gl.subtitle.includes('Stockfit-Assembly');
-          
+
           nodes.push({
             id: glId,
             type: 'position',
@@ -542,13 +553,13 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: 'GL',
               subtitle: processGroup.gl.subtitle,
               level: 2,
-              colorCategory: 'indirect',
+              colorCategory: classifyPosition('Line', 'GL', undefined, processGroup.gl.subtitle, 'GL'),
               // 병합된 노드에 대한 추가 정보
               isMerged: isStockfitAssembly,
               sourceProcesses: isStockfitAssembly && 'sourceProcesses' in processGroup ? processGroup.sourceProcesses : undefined
             },
           });
-          
+
           edges.push({
             id: `edge-${managingVsmId}-${glId}`,
             source: managingVsmId,
@@ -563,23 +574,28 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           const tlId = getNextId();
           const tlX = glX;
           const tlY = tlStartY + (tlIndex * 80);
-          
+
           // 병합된 Stockfit-Assembly 노드의 TL 처리
-          const isStockfitAssemblyTL = tl.subtitle && 
+          const isStockfitAssemblyTL = tl.subtitle &&
             (tl.subtitle.includes('(Stockfit)') || tl.subtitle.includes('(Assembly)'));
+
+          // Pre-stitching 처리: title을 비우고 subtitle만 표시
+          const isPreStitchingTL = tl.subtitle && tl.subtitle.toLowerCase().includes('pre-stitching');
+          const tlNodeTitle = isPreStitchingTL ? '' : 'TL';
+          const tlNodeSubtitle = tl.manpower ? `${tl.subtitle} [${tl.manpower}명]` : tl.subtitle;
 
           nodes.push({
             id: tlId,
             type: 'position',
             position: { x: tlX, y: tlY },
             data: {
-              title: 'TL',
-              subtitle: tl.manpower ? `${tl.subtitle} [${tl.manpower}명]` : tl.subtitle,
+              title: tlNodeTitle,
+              subtitle: tlNodeSubtitle,
               level: 3,
-              colorCategory: 'indirect',
+              colorCategory: classifyPosition('Line', 'TL', undefined, tl.subtitle, tlNodeTitle || 'TL'),
               // 병합된 노드에 대한 추가 정보
               isMerged: isStockfitAssemblyTL,
-              processOrigin: isStockfitAssemblyTL ? 
+              processOrigin: isStockfitAssemblyTL ?
                 (tl.subtitle.includes('(Stockfit)') ? 'stockfit' : 'assembly') : undefined
             },
           });
@@ -609,23 +625,28 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             const tmId = getNextId();
             const tmX = glX;
             const tmY = tmStartY + (tmIndex * 80);
-            
+
             // 병합된 Stockfit-Assembly 노드의 TM 처리
-            const isStockfitAssemblyTM = tm.subtitle && 
+            const isStockfitAssemblyTM = tm.subtitle &&
               (tm.subtitle.includes('(Stockfit)') || tm.subtitle.includes('(Assembly)'));
+
+            // Pre-stitching 처리: title을 비우고 subtitle만 표시
+            const isPreStitching = tm.subtitle && tm.subtitle.toLowerCase().includes('pre-stitching');
+            const nodeTitle = isPreStitching ? '' : 'TM(MH)';
+            const nodeSubtitle = tm.manpower ? `${tm.subtitle} [${tm.manpower}명]` : tm.subtitle;
 
             nodes.push({
               id: tmId,
               type: 'position',
               position: { x: tmX, y: tmY },
               data: {
-                title: 'TM(MH)',
-                subtitle: tm.manpower ? `${tm.subtitle} [${tm.manpower}명]` : tm.subtitle,
+                title: nodeTitle,
+                subtitle: nodeSubtitle,
                 level: 4,
-                colorCategory: 'indirect',
+                colorCategory: classifyPosition('Line', 'TM', undefined, tm.subtitle, nodeTitle || 'TM(MH)'),
                 // 병합된 노드에 대한 추가 정보
                 isMerged: isStockfitAssemblyTM,
-                processOrigin: isStockfitAssemblyTM ? 
+                processOrigin: isStockfitAssemblyTM ?
                   (tm.subtitle.includes('(Stockfit)') ? 'stockfit' : 'assembly') : undefined
               },
             });
@@ -657,7 +678,8 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const shiftCols = config.shiftsCount || 1;
       const totalTLCount = linesWithNosew.length * shiftCols;
       const requiredGLCount = Math.floor(totalTLCount / 4); // 4의 배수일 때만 GL 생성
-      const totalCols = Math.max(shiftCols, 2); // 최소 2개 열 (빈 박스 보장)
+      // Fix: Use actual shift count for columns, not minimum 2
+      const totalCols = shiftCols;
 
       const colXs = Array.from({ length: totalCols }, (_, i) => currentSeparatedX + i * glSpacing);
       const glIds: string[] = [];
@@ -674,7 +696,12 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             id: nodeId,
             type: 'position',
             position: { x: xPos, y: glY },
-            data: { title: 'GL', subtitle: glSubtitle, level: 2, colorCategory: 'indirect' }
+            data: {
+              title: 'GL',
+              subtitle: glSubtitle,
+              level: 2,
+              colorCategory: classifyPosition('No-sew', 'GL', 'No-sew', glSubtitle, 'GL')
+            }
           });
         } else {
           // 빈 박스
@@ -693,18 +720,18 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       edges.push({ id: `edge-${topConnectionNodeId}-${blankLMId}`, source: topConnectionNodeId, target: blankLMId, type: 'smoothstep' });
       glIds.forEach(glId => edges.push({ id: `edge-${blankLMId}-${glId}`, source: blankLMId, target: glId, type: 'smoothstep' }));
 
-      // TL 생성 및 연결 (수직 체인 연결)
+      // TL 생성 및 연결 - Fix: Use shift-based column assignment instead of round-robin
       const columnTLHistory: { [colIndex: number]: string[] } = {}; // 각 열의 TL ID 히스토리
 
-      let tlCounter = 0;
       linesWithNosew.forEach((lineIndex, i) => {
-        const yOffset = i * 80;
         const selectedModel = models[effectiveLineModelSelections[lineIndex]];
         const manpower = selectedModel?.processes?.find(p => p.name.toLowerCase().includes('no-sew'))?.manStt || 18;
 
         for (let shiftIdx = 0; shiftIdx < shiftCols; shiftIdx++) {
-          const colIndex = tlCounter % totalCols; // 순환 배치
+          // Fix: Use shift index directly for column assignment
+          const colIndex = shiftIdx;
           const xPos = colXs[colIndex];
+          const yOffset = i * 80;
 
           const tlId = getNextId();
           const shiftSuffix = shiftCols === 1 ? '' : ` ${shiftIdx === 0 ? 'A' : 'B'}`;
@@ -717,7 +744,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               subtitle: `Line ${lineIndex + 1} No-sew${shiftSuffix}`,
               manpower: manpower,
               level: 3,
-              colorCategory: 'indirect'
+              colorCategory: classifyPosition('No-sew', 'TL', 'No-sew', `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 'TL')
             }
           });
 
@@ -743,12 +770,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: 'TM(MH)',
               subtitle: `Line ${lineIndex + 1} No-sew${shiftSuffix}`,
               level: 4,
-              colorCategory: 'indirect'
+              colorCategory: classifyPosition('No-sew', 'TM', 'No-sew', `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 'TM(MH)')
             }
           });
           edges.push({ id: `edge-${tlId}-${tmId}`, source: tlId, target: tmId, type: 'smoothstep' });
-
-          tlCounter++;
         }
       });
 
@@ -775,7 +800,18 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
         hfXs.forEach((xPos, colIdx) => {
           const tlId = getNextId();
-          nodes.push({ id: tlId, type: 'position', position: { x: xPos, y: tlStartY + yOffset }, data: { title: 'TL', subtitle: `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`, manpower: manpower, level: 3, colorCategory: 'indirect' } });
+          nodes.push({
+            id: tlId,
+            type: 'position',
+            position: { x: xPos, y: tlStartY + yOffset },
+            data: {
+              title: 'TL',
+              subtitle: `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`,
+              manpower: manpower,
+              level: 3,
+              colorCategory: classifyPosition('HF Welding', 'TL', 'HF Welding', `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`, 'TL')
+            }
+          });
 
           if (i === 0) {
             edges.push({ id: `edge-${blankLMId}-${tlId}`, source: blankLMId, target: tlId, type: 'smoothstep' });
@@ -793,7 +829,17 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       hfXs.forEach((xPos, colIdx) => {
         for (let g = 0; g < hfTmGroups; g++) {
           const tmId = getNextId();
-          nodes.push({ id: tmId, type: 'position', position: { x: xPos, y: globalTMStartY + g * 80 }, data: { title: 'TM(MH)', subtitle: `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`, level: 4, colorCategory: 'indirect' } });
+          nodes.push({
+            id: tmId,
+            type: 'position',
+            position: { x: xPos, y: globalTMStartY + g * 80 },
+            data: {
+              title: 'TM(MH)',
+              subtitle: `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`,
+              level: 4,
+              colorCategory: classifyPosition('HF Welding', 'TM', 'HF Welding', `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`, 'TM(MH)')
+            }
+          });
 
           const sourceNodeId = colLastNodeIds[colIdx] || blankLMId;
           edges.push({ id: `edge-${sourceNodeId}-${tmId}`, source: sourceNodeId, target: tmId, type: 'smoothstep' });

@@ -10,6 +10,7 @@ import {
 } from './InteractivePositionBox';
 import { ReactFlowOrgChart } from './ReactFlowOrgChart';
 import { calculatePositionCount } from './calculatePositionCount';
+import { getProcessGroups as getProcessGroupsFromReactFlow, getSeparatedProcesses } from './ReactFlowPage1';
 
 // 상단에 상수 추가
 const POSITION_BOX_CONFIG = {
@@ -248,230 +249,9 @@ export const LMGroup: React.FC<LMGroupProps> = ({
   // 선택된 모델 정보
   const selectedModel = models[selectedModelIndex];
   
-  // page1.tsx의 getProcessGroups 함수를 사용해야 하지만 여기서는 직접 구현
+  // Use the real getProcessGroups function from ReactFlowPage1
   const getProcessGroupsForModel = (config: Config, selectedModel?: any, context: 'display' | 'calculation' = 'display') => {
-    if (!selectedModel) {
-      if (context === 'display') {
-        // 디스플레이 컨텍스트에서는 Stockfit-Assembly를 병합
-        return {
-          mainProcesses: [
-            {
-              gl: { subtitle: "Stitching", count: 1 },
-              tlGroup: [{ subtitle: "No Process" }],
-              tmGroup: [{ subtitle: "No Data" }],
-              showGL: true
-            },
-            {
-              gl: { subtitle: "Stockfit-Assembly", count: 1 },
-              tlGroup: [
-                { subtitle: "Stockfit" },
-                { subtitle: "Input" }, 
-                { subtitle: "Cementing" }, 
-                { subtitle: "Finishing" }
-              ],
-              tmGroup: [
-                { subtitle: "MH → Assembly (Stockfit)" },
-                { subtitle: "MH → Assembly" },
-                { subtitle: "MH → FG WH" },
-                { subtitle: "MH → Last" },
-              ],
-              showGL: true
-            },
-          ],
-          separatedProcesses: []
-        };
-      } else {
-        // 계산 컨텍스트에서는 기존 구조 유지
-        return {
-          mainProcesses: [
-            {
-              gl: { subtitle: "Stitching", count: 1 },
-              tlGroup: [{ subtitle: "No Process" }],
-              tmGroup: [{ subtitle: "No Data" }],
-            },
-            {
-              gl: { subtitle: "Stockfit", count: 1 },
-              tlGroup: [{ subtitle: "Stockfit" }],
-              tmGroup: [{ subtitle: "MH → Assembly" }],
-            },
-            {
-              gl: { subtitle: "Assembly", count: 1 },
-              tlGroup: [{ subtitle: "Input" }, { subtitle: "Cementing" }, { subtitle: "Finishing" }],
-              tmGroup: [
-                { subtitle: "MH → Assembly" },
-                { subtitle: "MH → FG WH" },
-                { subtitle: "MH → Last" },
-              ],
-            },
-          ],
-          separatedProcesses: []
-        };
-      }
-    }
-
-    const allProcesses = selectedModel.processes || [];
-    
-    // 1. Stitching 관련 공정들
-    const stitchingProcesses = allProcesses.filter((process: any) => 
-      process.name.toLowerCase().includes('stitching')
-    );
-    
-    // 2. Stockfit 관련 공정들
-    const stockfitProcesses = allProcesses.filter((process: any) => 
-      process.name.toLowerCase().includes('stockfit')
-    );
-    
-    // 3. Assembly 관련 공정들 (no-sew, hf welding 제외)
-    const assemblyProcesses = allProcesses.filter((process: any) => {
-      const name = process.name.toLowerCase();
-      return !name.includes('stitching') && 
-             !name.includes('stockfit') && 
-             !name.includes('no-sew') && 
-             !name.includes('hf welding') &&
-             !name.includes('cutting');
-    });
-
-    const mainProcesses = [];
-
-    // 1. Stitching 그룹
-    if (stitchingProcesses.length > 0) {
-      // 모델에서 cutting 관련 공정 찾기
-      const cuttingNoSewProcess = allProcesses.find((process: any) => 
-        process.name.toLowerCase().includes('cutting no-sew') || 
-        process.name.toLowerCase().includes('cutting nosew')
-      );
-      const cuttingStitchingProcess = allProcesses.find((process: any) => 
-        process.name.toLowerCase().includes('cutting stitching')
-      );
-
-      const tlGroup = [];
-      
-      // Cutting No-sew 추가 (실제 데이터 또는 기본값)
-      tlGroup.push({
-        subtitle: "Cutting No-sew",
-        manpower: cuttingNoSewProcess ? cuttingNoSewProcess.manAsy : 6
-      });
-      
-      // Cutting Stitching 추가 (실제 데이터 또는 기본값)
-      tlGroup.push({
-        subtitle: "Cutting Stitching", 
-        manpower: cuttingStitchingProcess ? cuttingStitchingProcess.manAsy : 5
-      });
-      
-      // 나머지 stitching 공정들 추가
-      tlGroup.push(...stitchingProcesses.map((process: any) => ({ 
-        subtitle: process.name,
-        manpower: process.manAsy 
-      })));
-
-      mainProcesses.push({
-        gl: { subtitle: "Stitching", count: 1 },
-        tlGroup,
-        tmGroup: stitchingProcesses.map((process: any) => ({ 
-          subtitle: `${process.name} TM`,
-          manpower: process.manAsy 
-        })),
-        processes: stitchingProcesses
-      });
-    }
-
-    // 2 & 3. Stockfit-Assembly 그룹 (display 컨텍스트) 또는 개별 그룹 (calculation 컨텍스트)
-    if (context === 'display') {
-      // 디스플레이 컨텍스트에서는 Stockfit-Assembly를 병합
-      
-      // Stockfit TL 그룹
-      const stockfitTLGroup = stockfitProcesses.map((process: any) => ({ 
-        subtitle: `${process.name} (Stockfit)`,
-        manpower: process.manAsy 
-      }));
-      
-      // Assembly TL 그룹 (고정 TL + 실제 공정)
-      const assemblyTLGroup = [
-        { subtitle: "Input (Assembly)", manpower: 5 },
-        { subtitle: "Cementing (Assembly)", manpower: 8 },
-        { subtitle: "Finishing (Assembly)", manpower: 6 }
-      ];
-      
-      // 실제 assembly 공정이 있으면 추가
-      if (assemblyProcesses.length > 0) {
-        assemblyProcesses.forEach((process: any) => {
-          assemblyTLGroup.push({ 
-            subtitle: `${process.name} (Assembly)`,
-            manpower: process.manAsy 
-          });
-        });
-      }
-      
-      // 병합된 TM 그룹
-      const mergedTMGroup = [
-        { subtitle: "Stockfit", manpower: stockfitProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0) },
-        { subtitle: "Assembly", manpower: assemblyProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0) },
-        { subtitle: "Assembly Last", manpower: 0 }
-      ];
-      
-      // 병합된 Stockfit-Assembly 그룹 추가
-      const stockfitManpower = stockfitProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0);
-      const assemblyManpower = assemblyProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0);
-      const totalManpower = stockfitManpower + assemblyManpower;
-      
-      mainProcesses.push({
-        gl: { 
-          subtitle: totalManpower > 0 ? `Stockfit-Assembly [${totalManpower}]` : "Stockfit-Assembly", 
-          count: 1 
-        },
-        tlGroup: [...stockfitTLGroup, ...assemblyTLGroup],
-        tmGroup: mergedTMGroup,
-        processes: [...stockfitProcesses, ...assemblyProcesses],
-        sourceProcesses: {
-          stockfit: stockfitProcesses,
-          assembly: assemblyProcesses
-        }
-      });
-    } else {
-      // 계산 컨텍스트에서는 기존 구조 유지 (Stockfit과 Assembly 분리)
-      
-      // 2. Stockfit 그룹
-      if (stockfitProcesses.length > 0) {
-        mainProcesses.push({
-          gl: { subtitle: "Stockfit", count: 1 },
-          tlGroup: stockfitProcesses.map((process: any) => ({ 
-            subtitle: process.name,
-            manpower: process.manAsy 
-          })),
-          tmGroup: [{ subtitle: "MH → Assembly" }],
-          processes: stockfitProcesses
-        });
-      }
-
-      // 3. Assembly 그룹 (고정 TL + 실제 공정)
-      const assemblyTLGroup = [
-        { subtitle: "Input", manpower: 5 },
-        { subtitle: "Cementing", manpower: 8 },
-        { subtitle: "Finishing", manpower: 6 }
-      ];
-      
-      if (assemblyProcesses.length > 0) {
-        assemblyProcesses.forEach((process: any) => {
-          assemblyTLGroup.push({ 
-            subtitle: process.name,
-            manpower: process.manAsy 
-          });
-        });
-      }
-
-      mainProcesses.push({
-        gl: { subtitle: "Assembly", count: 1 },
-        tlGroup: assemblyTLGroup,
-        tmGroup: [
-          { subtitle: "MH → Assembly" },
-          { subtitle: "MH → FG WH" },
-          { subtitle: "MH → Last" },
-        ],
-        processes: assemblyProcesses
-      });
-    }
-
-    return { mainProcesses, separatedProcesses: [] };
+    return getProcessGroupsFromReactFlow(config, selectedModel, undefined, context);
   };
 
   const { mainProcesses, separatedProcesses } = getProcessGroupsForModel(config, selectedModel);
@@ -482,45 +262,15 @@ export const LMGroup: React.FC<LMGroupProps> = ({
   });
   const maxTLHeight = Math.max(...tlHeights);
 
-  // 분리된 공정 (no-sew, hf welding) 계산
-  const getSeparatedProcessesForLine = () => {
-    if (!selectedModel) return [];
-    
-    const separatedProcessNames = ['cutting no-sew', 'hf welding', 'no-sew'];
-    const separatedProcesses = selectedModel.processes.filter((process: any) => 
-      separatedProcessNames.some((name: string) => 
-        process.name.toLowerCase().includes(name.toLowerCase()) || 
-        name.toLowerCase().includes(process.name.toLowerCase())
-      )
-    );
-    
-    // 시프트 수에 따라 A, B 구분
-    const result: Array<{ name: string; manAsy: number; shiftIndex?: number }> = [];
-    
-    separatedProcesses.forEach((process: any) => {
-      const processName = process.name;
-      
-      if (processName.toLowerCase().includes('no-sew')) {
-        for (let i = 0; i < config.shiftsCount; i++) {
-          const suffix = i === 0 ? 'A' : 'B';
-          result.push({
-            name: `${processName} ${suffix}`,
-            manAsy: process.manAsy,
-            shiftIndex: i
-          });
-        }
-      } else {
-        result.push({
-          name: processName,
-          manAsy: process.manAsy
-        });
-      }
-    });
-    
-    return result;
-  };
-
-  const separatedProcessesForLine = getSeparatedProcessesForLine();
+  // Use the centralized getSeparatedProcesses function
+  const separatedProcessesData = getSeparatedProcesses(selectedModel, config);
+  const separatedProcessesForLine = separatedProcessesData.length > 0 
+    ? separatedProcessesData[0].tlGroup.map((tl: any) => ({
+        name: tl.subtitle,
+        manAsy: tl.manpower,
+        shiftIndex: tl.shiftIndex
+      }))
+    : [];
 
   // InteractivePositionBox 생성 헬퍼 함수
   const createInteractiveBox = (
@@ -857,7 +607,7 @@ export const OrganizationTree: React.FC<{ page?: string }> = ({ page = "1" }) =>
 
   // Use the imported calculatePositionCount function
   const calculatePositionCountLocal = (position: string): number => {
-    return calculatePositionCount(position, config, getProcessGroups);
+    return calculatePositionCount(position, config, getProcessGroupsFromReactFlow);
   };
 
   const totalPeople = ["MGL", "LM", "GL", "TL", "TM"].reduce(
@@ -1021,53 +771,8 @@ export interface Config {
   hasTonguePrefit: boolean;
 }
   
-// 내보낼 getProcessGroups 함수 추가
-export function getProcessGroups(config: Config) {
-  return {
-    mainProcesses: [
-      {
-        gl: { subtitle: "Cutting-Prefit", count: 1 },
-        tlGroup: Array(config.shiftsCount)
-          .fill(null)
-          .map((_, idx) => ({ subtitle: `No-sew Shift ${idx + 1}` })),
-        tmGroup: Array(config.shiftsCount)
-          .fill(null)
-          .map((_, idx) => ({ subtitle: `MH to No-sew Shift ${idx + 1}` })),
-      },
-      {
-        gl: { subtitle: "Stitching", count: 1 },
-        tlGroup: [
-          ...Array(config.miniLineCount)
-            .fill(null)
-            .map((_, idx) => ({ subtitle: `Mini Line ${idx + 1}` })),
-          { subtitle: "Tongue Prefit" },
-        ],
-        tmGroup: Array(config.miniLineCount)
-          .fill(null)
-          .map((_, idx) => ({ subtitle: `MH to Stitching ${idx + 1}` })),
-      },
-      {
-        gl: { subtitle: "Stockfit", count: 1 },
-        tlGroup: [{ subtitle: "Stockfit" }],
-        tmGroup: [{ subtitle: "MH → Assembly" }],
-      },
-      {
-        gl: { subtitle: "Assembly", count: 1 },
-        tlGroup: [
-          { subtitle: "Input" },
-          { subtitle: "Cementing" },
-          { subtitle: "Finishing" },
-        ],
-        tmGroup: [
-          { subtitle: "MH → Assembly" },
-          { subtitle: "MH → FG WH" },
-          { subtitle: "MH → Last" },
-        ],
-      },
-    ],
-    separatedProcesses: []
-  };
-}
+// Export the real getProcessGroups function from ReactFlowPage1
+export { getProcessGroups } from './ReactFlowPage1';
 
 interface BoundaryProps {
   type: 'GL' | 'TL';

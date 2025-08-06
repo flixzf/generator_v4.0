@@ -10,6 +10,9 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
+import { getColorCategory } from './ColorCategoryUtils';
+import { getDepartmentsForPage } from './DepartmentData';
+import { makeDoubleLines, makeSingleLines, getShippingTMCount } from './LineUtils';
 import { CustomPositionNode, nodeTypes } from './CustomPositionNode';
 
 interface ReactFlowPage2Props {
@@ -19,32 +22,7 @@ interface ReactFlowPage2Props {
 export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
   const { config } = useOrgChart();
 
-  // 2라인씩 묶는 유틸리티 함수 - departments 외부로 이동
-  const makeDoubleLines = useCallback((count: number, prefix: string = 'Line ') => {
-    const result: string[] = [];
-    let i = 1;
-    while (i <= count) {
-      if (i + 1 <= count) {
-        result.push(`${prefix}${i}-${i + 1}`);
-        i += 2;
-      } else {
-        result.push(`${prefix}${i}`);
-        i += 1;
-      }
-    }
-    return result;
-  }, []);
-
-  // 일반적인 "Line X" 식
-  const makeSingleLines = useCallback((count: number, prefix: string = 'Line ') =>
-    Array.from({ length: count }, (_, i) => `${prefix}${i + 1}`), []);
-
-  // FG WH Shipping TM count mapping
-  const getShippingTMCount = useCallback((lineCount: number) => {
-    const lookup = [0, 1, 2, 3, 3, 4, 5, 6, 6];
-    if (lineCount <= 8) return lookup[lineCount];
-    return Math.ceil(lineCount * 0.75);
-  }, []);
+  // Use centralized line utilities
 
   // Plant Production TM 계산 함수 (2라인마다 1명 증가)
   const calculatePlantProductionTMs = useCallback((lineCount: number) => {
@@ -57,124 +35,66 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     return [inputTMs, outputTMs];
   }, []);
 
-  // 부서 목록 생성
-  const departments = useMemo(() => [
-    {
-      title: ["Admin"],
-      hasGL: false,
-      tl: [],
-      tm: [
-        ["Personnel"],
-        ["Production"],
-        ["ISQ"],
-      ],
-    },
-    {
-      title: ["Small Tooling"],
-      hasGL: false,
-      tl: ["Small Tooling"],
-      tm: [["Last Control"], ["Pallet"], ["Cutting Die/Pad/Mold"]],
-    },
-    {
-      title: ["Raw Material"],
-      hasGL: false,
-      tl: [],
-      tm: [["Raw Material"], ["Raw Material"]],
-    },
-    {
-      title: ["Sub Material"],
-      hasGL: false,
-      tl: ["Material"],
-      tm: [["Incoming"], ["Distribution"]],
-    },
-    {
-      title: ["ACC Market"],
-      hasGL: false,
-      tl: [],
-      tm: [makeDoubleLines(config.lineCount).map(line => `${line} ACC`)],
-    },
-    {
-      title: "P&L Market",
-      hasGL: true,
-      tl: ["P&L Market"],
-      tm: [
-        [
-          "Stencil1",
-          "Stencil2",
-          ...makeDoubleLines(config.lineCount).map(line => `${line} Box`),
+  // Use centralized department data (with dynamic calculations for some departments)
+  const departments = useMemo(() => {
+    const baseDepartments = getDepartmentsForPage('page2');
+    
+    // Add dynamic departments that depend on config
+    return [
+      ...baseDepartments,
+      {
+        title: ["ACC Market"],
+        hasGL: false,
+        tl: [],
+        tm: [makeDoubleLines(config.lineCount).map(line => `${line} ACC`)],
+      },
+      {
+        title: "P&L Market",
+        hasGL: true,
+        tl: ["P&L Market"],
+        tm: [
+          [
+            "Stencil1",
+            "Stencil2",
+            ...makeDoubleLines(config.lineCount).map(line => `${line} Box`),
+          ],
+          [
+            ...makeDoubleLines(config.lineCount).map(line => `${line} Paper`),
+          ],
         ],
-        [
-          ...makeDoubleLines(config.lineCount).map(line => `${line} Paper`),
+      },
+      {
+        title: ["Bottom Market"],
+        hasGL: false,
+        tl: ["Bottom Market Incoming"],
+        tm: [
+          ["Outsole", "Outsole", "Midsole", "Midsole"],
+          ["Bottom ACC"],
         ],
-      ],
-    },
-    {
-      title: ["Bottom Market"],
-      hasGL: false,
-      tl: ["Bottom Market Incoming"],
-      tm: [
-        ["Outsole", "Outsole", "Midsole", "Midsole"],
-        ["Bottom ACC"],
-      ],
-    },
-    {
-      title: ["Plant Production\n(Outsole degreasing)"],
-      hasGL: false,
-      tl: [],
-      tm: [
-        makeDoubleLines(config.lineCount).map(line => `${line} Input`),
-        makeDoubleLines(config.lineCount).map(line => `${line} Output`)
-      ],
-    },
-    {
-      title: "FG WH",
-      hasGL: true,
-      tl: ["FG WH"],
-      tm: [
-        Array.from({ length: getShippingTMCount(config.lineCount) }, (_, idx) => `Shipping TM ${idx + 1}`),
-        makeSingleLines(config.lineCount, '').map(i => `Incoming & Setting Line ${i}`),
-        ["Incoming Scan"],
-      ],
-    },
-  ], [config.lineCount, config.gateCount, makeDoubleLines, makeSingleLines, getShippingTMCount]);
+      },
+      {
+        title: ["Plant Production\n(Outsole degreasing)"],
+        hasGL: false,
+        tl: [],
+        tm: [
+          makeDoubleLines(config.lineCount).map(line => `${line} Input`),
+          makeDoubleLines(config.lineCount).map(line => `${line} Output`)
+        ],
+      },
+      {
+        title: "FG WH",
+        hasGL: true,
+        tl: ["FG WH"],
+        tm: [
+          Array.from({ length: getShippingTMCount(config.lineCount) }, (_, idx) => `Shipping TM ${idx + 1}`),
+          makeSingleLines(config.lineCount, '').map(i => `Incoming & Setting Line ${i}`),
+          ["Incoming Scan"],
+        ],
+      },
+    ];
+  }, [config.lineCount, config.gateCount, makeDoubleLines, makeSingleLines, getShippingTMCount]);
 
-  // 색상 카테고리 결정 함수
-  const getColorCategory = (
-    deptTitle: string | string[], 
-    position: 'GL' | 'TL' | 'TM', 
-    subtitle?: string
-  ): 'direct' | 'indirect' | 'OH' => {
-    const deptName = Array.isArray(deptTitle) ? deptTitle[0] : deptTitle;
-    
-    // OH 색상이 되어야 할 조건들
-    // 1. Admin-TM전체 (Admin은 GL이 없으므로 GL일 때도 포함)
-    if (deptName === "Admin" && (position === "TM" || position === "GL")) {
-      return "OH";
-    }
-    
-    // 2. Small Tooling: GL/TL/TM
-    if (deptName === "Small Tooling" && (position === "GL" || position === "TL" || position === "TM")) {
-      return "OH";
-    }
-    
-    // 3. Sub Material: GL/TL/TM
-    if (deptName === "Sub Material" && (position === "GL" || position === "TL" || position === "TM")) {
-      return "OH";
-    }
-    
-    // 4. FG WH: shipping TM 만
-    if (deptName === "FG WH" && position === "TM" && subtitle?.includes("Shipping")) {
-      return "OH";
-    }
-    
-    // 5. Plant Production: ALL TMs are direct (직접 생산 관련)
-    if (deptName === "Plant Production\n(Outsole degreasing)" && position === "TM") {
-      return "direct";
-    }
-    
-    // 나머지는 모두 indirect
-    return "indirect";
-  };
+  // Import centralized color category function
 
   // 특정 TM은 "TM (MH)"로 헤드를 변경
   const getTMTitle = (subtitle: string) => {

@@ -97,7 +97,13 @@
   - Ensure proper display of aggregated manpower and responsibilities
   - _Requirements: 4.1, 4.2_
 
-- [ ] 9. Preserve separate data for calculation contexts
+- [x] 9. Preserve separate data for calculation contexts
+
+
+
+
+
+
 
 
 
@@ -107,19 +113,34 @@
   - Add validation to confirm calculation accuracy is maintained
   - _Requirements: 3.1, 3.2, 3.3_
 
-- [ ] 10. Clean up unused stockfit ratio code
+- [x] 10. Clean up unused stockfit ratio code
+
+
+
+
+
   - Remove any remaining references to stockfitRatio in components
   - Clean up conditional logic that is no longer needed
   - Update comments and documentation to reflect changes
   - _Requirements: 1.2, 1.3_
 
-- [ ] 11. Add comprehensive tests for merged functionality
+- [x] 11. Add comprehensive tests for merged functionality
+
+
+
+
+
   - Write unit tests for process merging logic
   - Test personnel count accuracy with merged display
   - Verify configuration panel works without stockfit ratio
   - _Requirements: 2.4, 4.3_
 
-- [ ] 12. Perform integration testing and validation
+- [x] 12. Perform integration testing and validation
+
+
+
+
+
   - Test complete workflow from configuration to display
   - Verify data consistency between display and calculation contexts
   - Validate that all pages work correctly with merged structure

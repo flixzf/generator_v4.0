@@ -46,12 +46,12 @@ type OrgChartData = {
     Line: Department;
     Admin: Department;
     SmallTooling: Department;
-    RawMaterial: Department;
-    SubMaterial: Department;
-    ACC: Department;
-    PL: Department;
-    BottomMarket: Department;
-    FGWH: Department;
+    'Raw Material': Department;
+    'Sub Material': Department;
+    'ACC Market': Department;
+    'P&L Market': Department;
+    'Bottom Market': Department;
+    'FG WH': Department;
     Quality: Department;
     CE: Department;
     TPM: Department;
@@ -99,7 +99,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     title: ['Line'],
     tl: [
       'Cutting-Prefit',
-      'Stitching', 
+      'Stitching',
       'Stockfit',
       'Assembly'
     ],
@@ -109,9 +109,9 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
       ['Stockfit TM'],
       ['Assembly Input', 'Assembly Cementing', 'Assembly Finishing']
     ],
-          PM: 1,
-      LM: 1,
-      GL: 1,
+    PM: 1,
+    LM: 1,
+    GL: 1,
     TL: 4,
     TM: 6
   },
@@ -137,7 +137,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TL: ['Small Tooling'].length,
     TM: [['Cutting Die'], ['Pallet'], ['Pad/Mold']].length
   },
-  RawMaterial: {
+  'Raw Material': {
     name: 'Raw Material',
     title: ['Raw Material'],
     tl: ['Incoming', 'Distribution'],
@@ -148,7 +148,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TL: 2,
     TM: 4
   },
-  SubMaterial: {
+  'Sub Material': {
     name: 'Sub Material',
     title: ['Sub Material'],
     tl: ['SAP RO'],
@@ -159,8 +159,8 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TL: 1,
     TM: 2
   },
-  ACC: {
-    name: 'ACC',
+  'ACC Market': {
+    name: 'ACC Market',
     title: ['ACC'],
     tl: ['Incoming', 'Distribution'],
     tm: [['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
@@ -170,8 +170,8 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TL: 2,
     TM: 4
   },
-  PL: {
-    name: 'P&L',
+  'P&L Market': {
+    name: 'P&L Market',
     title: ['P&L'],
     tl: ['Stencil 1-2', 'Stencil 3-4', 'Stencil 5-6'],
     tm: [['Incoming'], ['Setting'], ['Line 1-2'], ['Line 3-4'], ['Line 5-6'], ['Line 7-8']],
@@ -181,7 +181,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TL: 3,
     TM: 6
   },
-  BottomMarket: {
+  'Bottom Market': {
     name: 'Bottom Market',
     title: ['Bottom Market'],
     tl: ['Outsole', 'Midsole', 'Airbag'],
@@ -197,7 +197,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TM: 8
   },
 
-  FGWH: {
+  'FG WH': {
     name: 'FG WH',
     title: ['FG WH'],
     tl: ['Shipping 1-4', 'Shipping 5-8'],
@@ -224,7 +224,7 @@ const initialDepartments: Record<keyof OrgChartData['departments'], Department> 
     TL: 2,
     TM: 17  // QA TM 16명 + MA TM 1명
   },
-  
+
   // 나머지 부서들은 기본 구조만 추가
   CE: {
     name: 'CE',
@@ -410,10 +410,10 @@ const calculateCEDepartment = (config: Config): Department => {
 const calculateTPMDepartment = (config: Config): Department => {
   // Stitching: 2개 라인당 1명
   const stitchingTmCount = Math.ceil(config.lineCount / 2);
-  
+
   // Cutting & Stockfit·Assembly: 2개 라인당 1명
   const cuttingStockfitTmCount = Math.ceil(config.lineCount / 2);
-  
+
   // CMMS & Electricity: CMMS 1명, Electricity 1명 고정
   const cmmsTmCount = 1;
   const electricityTmCount = 1;
@@ -425,10 +425,10 @@ const calculateTPMDepartment = (config: Config): Department => {
     tm: [
       // Stitching TM
       makeDoubleLines(config.lineCount).map(line => `Stitching ${line}`),
-      
+
       // Cutting & Stockfit·Assembly TM
       makeDoubleLines(config.lineCount).map(line => `C&S ${line}`),
-      
+
       // CMMS & Electricity TM
       ['CMMS', 'Electricity']
     ],
@@ -498,7 +498,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
 
   // 모델 상태 관리
   const [models, setModels] = useState<ModelData[]>(initialModels);
-  
+
   const [lineModelSelections, setLineModelSelections] = useState<number[]>([]);
 
   // 1. 기본 계산 함수들 먼저 정의
@@ -537,13 +537,13 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tm: [
         // Cutting-Prefit TM: shiftsCount만큼
         Array(config.shiftsCount).fill('Cutting-Prefit TM'),
-        
+
         // Stitching TM: miniLineCount + hasTonguePrefit만큼
         Array(config.miniLineCount + (config.hasTonguePrefit ? 1 : 0)).fill('Stitching TM'),
-        
-        // Stockfit TM: 1개로 고정 (stockfitRatio 제거)
+
+        // Stockfit TM: 1개로 고정
         Array(1).fill('Stockfit TM'),
-        
+
         // Assembly TM: 3개 고정 (Input, Cementing, Finishing)
         ['Assembly Input', 'Assembly Cementing', 'Assembly Finishing']
       ],
@@ -595,7 +595,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       tl: ['Small Tooling'], // 1개 요소로 초기화
       tm: [['Cutting Die'], ['Pallet'], ['Pad/Mold']], // 3개 요소로 초기화
       PM: 0,
-      LM: 0, 
+      LM: 0,
       GL: 0, // title이 배열이므로 0
       TL: 1,
       TM: 3
@@ -615,8 +615,8 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       return tmLines;
     };
 
-    if (prevDepartments?.RawMaterial) {
-      const dept = prevDepartments.RawMaterial;
+    if (prevDepartments?.['Raw Material']) {
+      const dept = prevDepartments['Raw Material'];
       return {
         name: 'Raw Material',
         title: dept.title,
@@ -644,8 +644,8 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculateSubMaterialDepartment = (prevDepartments?: OrgChartData['departments']): Department => {
-    if (prevDepartments?.SubMaterial) {
-      const dept = prevDepartments.SubMaterial;
+    if (prevDepartments?.['Sub Material']) {
+      const dept = prevDepartments['Sub Material'];
       return {
         name: 'Sub Material',
         title: dept.title,
@@ -676,7 +676,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     config: Config,
     prevDepartments?: OrgChartData['departments']
   ): Department => {
-    // lineCount 기반으로 tm 배열을 생성하는 함수 (RawMaterial 방식과 동일)
+    // lineCount 기반으로 tm 배열을 생성하는 함수 (Raw Material 방식과 동일)
     const generateTmLines = (lineCount: number) => {
       const tmLines = [];
       for (let i = 1; i <= lineCount; i++) {
@@ -685,12 +685,12 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       return tmLines;
     };
 
-    
 
-    if (prevDepartments?.ACC) {
-      const dept = prevDepartments.ACC;
+
+    if (prevDepartments?.['ACC Market']) {
+      const dept = prevDepartments['ACC Market'];
       return {
-        name: 'ACC',
+        name: 'ACC Market',
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
@@ -703,7 +703,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     }
 
     return {
-      name: 'ACC',
+      name: 'ACC Market',
       title: ['ACC'],
       tl: ["Line"],
       tm: generateTmLines(config.lineCount),
@@ -716,7 +716,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const calculatePLDepartment = (
-    config: Config, 
+    config: Config,
     prevDepartments?: OrgChartData['departments']
   ): Department => {
     // lineCount 기반으로 tm 배열을 생성하는 함수
@@ -732,10 +732,10 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     // 예를 들어 4라인이면: 2 + 4 + 1 = 7, 5라인이면: 3 + 5 + 1 = 9
     const computedTM = Math.ceil(config.lineCount / 2) + config.lineCount + 1;
 
-    if (prevDepartments?.PL) {
-      const dept = prevDepartments.PL;
+    if (prevDepartments?.['P&L Market']) {
+      const dept = prevDepartments['P&L Market'];
       return {
-        name: 'P&L',
+        name: 'P&L Market',
         title: dept.title,
         tl: dept.tl,
         tm: generateTmLines(config.lineCount),
@@ -748,7 +748,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     }
 
     return {
-      name: 'P&L',
+      name: 'P&L Market',
       title: ['P&L'],
       tl: ['Incoming & Setting'],
       tm: generateTmLines(config.lineCount),
@@ -765,7 +765,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     prevDepartments?: OrgChartData['departments']
   ): Department => {
     // lineCount 기반으로 tm 배열을 생성하는 함수
-    // 기존의 BottomMarket 부서에서는 고정값 대신 config에 따른 동적 배열 생성 방식으로 변경합니다.
+    // 기존의 Bottom Market 부서에서는 고정값 대신 config에 따른 동적 배열 생성 방식으로 변경합니다.
     const generateTmLines = (lineCount: number) => {
       const tmLines = [];
       for (let i = 1; i <= lineCount; i++) {
@@ -777,8 +777,8 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     // 새로운 TM 계산 방식: (라인수 * 2) + 1 + (라인수 / 2, 올림)
     const computedTM = (config.lineCount * 2) + 1 + Math.ceil(config.lineCount / 2);
 
-    if (prevDepartments?.BottomMarket) {
-      const dept = prevDepartments.BottomMarket;
+    if (prevDepartments?.['Bottom Market']) {
+      const dept = prevDepartments['Bottom Market'];
       return {
         name: 'Bottom Market',
         title: dept.title,
@@ -819,8 +819,8 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       return Array.from({ length: count }, (_, i) => [`Team ${i + 1}`]);  // 각 요소를 배열로 감싸기
     };
 
-    if (prevDepartments?.FGWH) {
-      const dept = prevDepartments.FGWH;
+    if (prevDepartments?.['FG WH']) {
+      const dept = prevDepartments['FG WH'];
       return {
         name: 'FG WH',
         title: dept.title,
@@ -863,19 +863,19 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   // 4. departments state 초기화
   const [departments, setDepartments] = useState<OrgChartData['departments']>(() => {
     const deps = {} as OrgChartData['departments'];
-    
+
     // 초기화 시에도 각 부서별 적절한 계산 함수 사용
     deps.Line = calculateLineDepartment(config);
     deps.Admin = calculateAdminDepartment(config);
     deps.SmallTooling = calculateSmallToolingDepartment();
-    deps.RawMaterial = calculateRawMaterialDepartment(config);
-    deps.SubMaterial = calculateSubMaterialDepartment();
-    deps.ACC = calculateACCDepartment(config);
-    deps.PL = calculatePLDepartment(config);
-    deps.BottomMarket = calculateBottomMarketDepartment(config);
-    
-    deps.FGWH = calculateFGWHDepartment(config);
-    
+    deps['Raw Material'] = calculateRawMaterialDepartment(config);
+    deps['Sub Material'] = calculateSubMaterialDepartment();
+    deps['ACC Market'] = calculateACCDepartment(config);
+    deps['P&L Market'] = calculatePLDepartment(config);
+    deps['Bottom Market'] = calculateBottomMarketDepartment(config);
+
+    deps['FG WH'] = calculateFGWHDepartment(config);
+
     deps.Quality = calculateQualityDepartment(config);
     deps.CE = calculateCEDepartment(config);
     deps.TPM = calculateTPMDepartment(config);
@@ -883,7 +883,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     deps.Lean = calculateLeanDepartment(config);
     deps.Security = calculateSecurityDepartment(config);
     deps.RMCC = calculateRMCCDepartment();
-    
+
     return deps;
   });
 
@@ -892,7 +892,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     setLineModelSelections(prev => {
       const newSelections = new Array(config.lineCount).fill(0);
       // 기존 선택값 유지
-      for(let i = 0; i < Math.min(prev.length, config.lineCount); i++) {
+      for (let i = 0; i < Math.min(prev.length, config.lineCount); i++) {
         newSelections[i] = prev[i];
       }
       return newSelections;
@@ -901,7 +901,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
 
   // 5. 업데이트 함수들
   const updateDepartment = (
-    deptName: keyof OrgChartData['departments'], 
+    deptName: keyof OrgChartData['departments'],
     positions: Partial<Department>
   ) => {
     setDepartments(prev => ({
@@ -913,19 +913,19 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   const updateDepartmentsBasedOnConfig = (newConfig: Config) => {
     setDepartments(prev => {
       const deps = {} as OrgChartData['departments'];
-      
+
       // 각 부서별로 적절한 계산 함수 사용
       deps.Line = calculateLineDepartment(newConfig);  // Line은 config만 사용
       deps.Admin = calculateAdminDepartment(newConfig);
       deps.SmallTooling = calculateSmallToolingDepartment(prev);
-      deps.RawMaterial = calculateRawMaterialDepartment(newConfig, prev);
-      deps.SubMaterial = calculateSubMaterialDepartment(prev);
-      deps.ACC = calculateACCDepartment(newConfig, prev);
-      deps.PL = calculatePLDepartment(newConfig, prev);
-      deps.BottomMarket = calculateBottomMarketDepartment(newConfig, prev);
-      
-      deps.FGWH = calculateFGWHDepartment(newConfig, prev);
-      
+      deps['Raw Material'] = calculateRawMaterialDepartment(newConfig, prev);
+      deps['Sub Material'] = calculateSubMaterialDepartment(prev);
+      deps['ACC Market'] = calculateACCDepartment(newConfig, prev);
+      deps['P&L Market'] = calculatePLDepartment(newConfig, prev);
+      deps['Bottom Market'] = calculateBottomMarketDepartment(newConfig, prev);
+
+      deps['FG WH'] = calculateFGWHDepartment(newConfig, prev);
+
       deps.Quality = calculateQualityDepartment(newConfig);
       deps.CE = calculateCEDepartment(newConfig);
       deps.TPM = calculateTPMDepartment(newConfig);
@@ -933,7 +933,7 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
       deps.Lean = calculateLeanDepartment(newConfig);  // Lean 부서 계산 추가
       deps.Security = calculateSecurityDepartment(newConfig);
       deps.RMCC = calculateRMCCDepartment();
-      
+
       return deps;
     });
   };
@@ -977,8 +977,8 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <OrgChartContext.Provider value={{ 
-      departments, 
+    <OrgChartContext.Provider value={{
+      departments,
       config,
       models,
       updateDepartment,

@@ -10,6 +10,9 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
+import { getColorCategory } from './ColorCategoryUtils';
+import { getDepartmentsForPage } from './DepartmentData';
+import { makeDoubleLines } from './LineUtils';
 import { CustomPositionNode, nodeTypes } from './CustomPositionNode';
 
 interface ReactFlowPage3Props {
@@ -19,23 +22,9 @@ interface ReactFlowPage3Props {
 export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
   const { config } = useOrgChart();
 
-  // 2라인씩 묶는 유틸리티 함수
-  const makeDoubleLines = useCallback((count: number, prefix: string = 'Line ') => {
-    const result: string[] = [];
-    let i = 1;
-    while (i <= count) {
-      if (i + 1 <= count) {
-        result.push(`${prefix}${i}-${i + 1}`);
-        i += 2;
-      } else {
-        result.push(`${prefix}${i}`);
-        i += 1;
-      }
-    }
-    return result;
-  }, []);
+  // Use centralized line utilities
 
-  // 부서 목록 생성 (page3 요구사항에 맞게)
+  // Use centralized department data with dynamic additions
   const departments = useMemo(() => [
     {
       title: ["Quality"],
@@ -103,29 +92,7 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
   ], [config.lineCount, config.gateCount, makeDoubleLines]);
 
   // 색상 카테고리 결정 함수
-  const getColorCategory = useCallback((
-    deptTitle: string | string[], 
-    position: 'GL' | 'TL' | 'TM', 
-    subtitle?: string
-  ): 'direct' | 'indirect' | 'OH' => {
-    const deptName = Array.isArray(deptTitle) ? deptTitle[0] : deptTitle;
-    
-    // Quality 부서
-    if (deptName === "Quality") {
-      if (position === "GL") return "OH"; // GL은 OH 색상
-      if (position === "TM" && subtitle?.includes("MQAA Audit")) return "OH";
-      return "indirect";
-    }
-    
-    // CE 부서
-    if (deptName === "CE") {
-      if (position === "TM" && subtitle?.toLowerCase().includes("mixing")) return "direct";
-      return "OH";
-    }
-    
-    // 나머지는 모두 OH
-    return "OH";
-  }, []);
+  // Use centralized color category function
 
   // ========= 그래프 생성 함수 =========
   const buildGraph = useCallback((deps: typeof departments) => {

@@ -1,14 +1,14 @@
 // Helper function for calculating position counts
 export function calculatePositionCount(position, config, getProcessGroups) {
   if (position === "MGL") return 1;
-  if (position === "LM") return config.lineCount;
+  if (position === "LM") return Math.ceil(config.lineCount / 2); // 2개 라인당 1명으로 계산
   
   // 모델 기반 인원 계산
   let total = 0;
   
   try {
     // 'display' 컨텍스트를 명시적으로 전달하여 병합된 구조를 사용
-    const result = getProcessGroups(config);
+    const result = getProcessGroups(config, null, undefined, 'display');
     if (!result || !result.mainProcesses) return total;
     
     const groups = result.mainProcesses || [];

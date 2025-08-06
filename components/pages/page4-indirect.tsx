@@ -27,6 +27,8 @@ type Summary = {
 
 // Import the getProcessGroups function from ReactFlowPage1
 import { getProcessGroups } from '@/components/common/ReactFlowPage1';
+import { classifyPosition } from '@/components/common/ClassificationEngine';
+import { getDepartmentsForPage } from '@/components/common/DepartmentData';
 
 // Use the imported getProcessGroups function with 'calculation' context
 function getProcessGroups_p1(config: any, selectedModel?: any, lineIndex?: number) {
@@ -41,7 +43,7 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
   const getNextId = () => `p1-node-${idCounter++}`;
   
   // PM 노드
-  nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'PM', colorCategory: 'OH' } });
+  nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'PM', colorCategory: classifyPosition('Line', 'PM') } });
   
   // 분리된 공정을 가진 라인들 찾기
   const linesWithNosew: number[] = [];
@@ -53,19 +55,19 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     if (!selectedModel) return;
 
     // LM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'LM', colorCategory: 'OH' } });
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'LM', colorCategory: classifyPosition('Line', 'LM') } });
     
     // 메인 공정 노드들
     const { mainProcesses } = getProcessGroups_p1(config, selectedModel, lineIndex);
     mainProcesses.forEach(processGroup => {
       if (processGroup.showGL !== false) {
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'GL', colorCategory: 'direct' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'GL', colorCategory: classifyPosition('Line', 'GL') } });
       }
       processGroup.tlGroup.forEach(() => {
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'TL', colorCategory: 'direct' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'TL', colorCategory: classifyPosition('Line', 'TL') } });
       });
       processGroup.tmGroup.forEach(() => {
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'TM', colorCategory: 'direct' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'TM', colorCategory: classifyPosition('Line', 'TM') } });
       });
     });
 
@@ -84,18 +86,18 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const shiftCols = config.shiftsCount || 1;
     
     // 빈 LM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: 'blank' } });
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: classifyPosition('Separated', 'LM') } });
     
     // GL 노드들
     for (let i = 0; i < shiftCols; i++) {
-      nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'No-sew', level: 'GL', colorCategory: 'direct' } });
+      nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'No-sew', level: 'GL', colorCategory: classifyPosition('No-sew', 'GL') } });
     }
     
     // TL, TM 노드들 (각 라인별로)
     linesWithNosew.forEach(() => {
       for (let col = 0; col < shiftCols; col++) {
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'No-sew', level: 'TL', colorCategory: 'direct' } });
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'No-sew', level: 'TM', colorCategory: 'direct' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'No-sew', level: 'TL', colorCategory: classifyPosition('No-sew', 'TL') } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'No-sew', level: 'TM', colorCategory: classifyPosition('No-sew', 'TM') } });
       }
     });
   }
@@ -104,12 +106,12 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const hfCols = config.shiftsCount || 1;
     
     // 빈 LM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: 'blank' } });
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: classifyPosition('Separated', 'LM') } });
     
     // TL 노드들 (각 라인별로)
     linesWithHfWelding.forEach(() => {
       for (let col = 0; col < hfCols; col++) {
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'HF Welding', level: 'TL', colorCategory: 'direct' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'HF Welding', level: 'TL', colorCategory: classifyPosition('HF Welding', 'TL') } });
       }
     });
     
@@ -117,7 +119,7 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const hfTmGroups = Math.ceil(linesWithHfWelding.length / 2);
     for (let col = 0; col < hfCols; col++) {
       for (let g = 0; g < hfTmGroups; g++) {
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'HF Welding', level: 'TM', colorCategory: 'direct' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'HF Welding', level: 'TM', colorCategory: classifyPosition('HF Welding', 'TM') } });
       }
     }
   }
@@ -131,38 +133,10 @@ const generateNodesForPage2 = (config: any): CustomNode[] => {
     let idCounter = 0;
     const getNextId = () => `p2-node-${idCounter++}`;
     
-    const getColorCategory = (deptTitle: string, position: 'GL' | 'TL' | 'TM', subtitle?: string): NodeData['colorCategory'] => {
-        if (["Admin", "Small Tooling", "Sub Material"].includes(deptTitle)) return "OH";
-        if (deptTitle === "FG WH" && position === "TM" && subtitle?.includes("Shipping")) return "OH";
-        if (deptTitle === "Plant Production" && position === "TM") return "direct";
-        return "indirect";
-    };
-
+    // Use centralized classification engine for all positions
+    const baseDepartments = getDepartmentsForPage('page4-indirect');
     const departments = [
-        {
-            title: "Admin",
-            hasGL: false,
-            tl: [],
-            tm: [["Personnel"], ["Production"], ["ISQ"]],
-        },
-        {
-            title: "Small Tooling",
-            hasGL: false,
-            tl: ["Small Tooling"],
-            tm: [["Last Control"], ["Pallet"], ["Cutting Die/Pad/Mold"]],
-        },
-        {
-            title: "Raw Material",
-            hasGL: false,
-            tl: [],
-            tm: [["Raw Material"], ["Raw Material"]],
-        },
-        {
-            title: "Sub Material",
-            hasGL: false,
-            tl: ["Material"],
-            tm: [["Incoming"], ["Distribution"]],
-        },
+        ...baseDepartments,
         {
             title: "ACC Market",
             hasGL: false,
@@ -209,20 +183,20 @@ const generateNodesForPage2 = (config: any): CustomNode[] => {
     ];
 
     departments.forEach(dept => {
-        const deptName = dept.title;
+        const deptName = Array.isArray(dept.title) ? dept.title[0] : dept.title;
         
         // 부서명 박스 노드
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'DEPT', colorCategory: 'OH' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'DEPT', colorCategory: classifyPosition(deptName, 'DEPT') } });
         
         if (dept.hasGL) {
-            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'GL', colorCategory: getColorCategory(deptName, 'GL') } });
+            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'GL', colorCategory: classifyPosition(deptName, 'GL') } });
         }
         dept.tl.forEach(tl => {
-            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TL', colorCategory: getColorCategory(deptName, 'TL', tl) } });
+            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TL', colorCategory: classifyPosition(deptName, 'TL', undefined, tl) } });
         });
         dept.tm.forEach(tmGroup => {
             tmGroup.forEach(tm => {
-                nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TM', colorCategory: getColorCategory(deptName, 'TM', tm) } });
+                nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TM', colorCategory: classifyPosition(deptName, 'TM', undefined, tm) } });
             });
         });
     });
@@ -288,34 +262,23 @@ const generateNodesForPage3 = (config: any): CustomNode[] => {
         }
     ];
 
-    const getColorCategory = (deptTitle: string, position: 'GL' | 'TL' | 'TM', subtitle?: string): NodeData['colorCategory'] => {
-        if (deptTitle === "Quality") {
-            if (position === "GL") return "OH";
-            if (position === "TM" && subtitle?.includes("MQAA Audit")) return "OH";
-            return "indirect";
-        }
-        if (deptTitle === "CE") {
-            if (position === "TM" && subtitle?.toLowerCase().includes("mixing")) return "direct";
-            return "OH";
-        }
-        return "OH";
-    };
+    // Use centralized classification engine for all positions
 
     departments.forEach(dept => {
         const deptName = dept.title;
         
         // 부서명 노드
-        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'DEPT', colorCategory: 'OH' } });
+        nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'DEPT', colorCategory: classifyPosition(deptName, 'DEPT') } });
         
         if (dept.hasGL) {
-            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'GL', colorCategory: getColorCategory(deptName, 'GL') } });
+            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'GL', colorCategory: classifyPosition(deptName, 'GL') } });
         }
         dept.tl.forEach(tl => {
-            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TL', colorCategory: getColorCategory(deptName, 'TL', tl) } });
+            nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TL', colorCategory: classifyPosition(deptName, 'TL', undefined, tl) } });
         });
         dept.tm.forEach(tmGroup => {
             tmGroup.forEach(tm => {
-                nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TM', colorCategory: getColorCategory(deptName, 'TM', tm) } });
+                nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: deptName, level: 'TM', colorCategory: classifyPosition(deptName, 'TM', undefined, tm) } });
             });
         });
     });
@@ -431,10 +394,18 @@ export default function Page4Indirect() {
         });
     });
 
-    // 노드 집계 - no-sew, hf welding, separated를 Line으로 통합
+    // 노드 집계 - 중앙화된 분류 엔진을 사용하여 올바른 분류 확인
     nodes.forEach(node => {
         const { department, level, colorCategory } = node.data;
         if (!department || !level) return;
+        
+        // 중앙화된 분류 엔진으로 실제 분류 확인
+        const actualClassification = classifyPosition(department, level);
+        
+        // 이 페이지는 indirect와 OH만 포함해야 함 (direct는 제외)
+        if (actualClassification === 'direct') {
+            return; // direct 분류는 이 페이지에서 제외
+        }
         
         // no-sew, hf welding, separated를 Line으로 통합
         let targetDept = department;
@@ -442,7 +413,8 @@ export default function Page4Indirect() {
             targetDept = "Line";
         }
         
-        const summary = colorCategory === 'OH' ? overheadSummary : indirectSummary;
+        // 실제 분류에 따라 올바른 요약에 추가
+        const summary = actualClassification === 'OH' ? overheadSummary : indirectSummary;
         
         if (summary[level] && allDepts.includes(targetDept)) {
             summary[level][targetDept] = (summary[level][targetDept] || 0) + 1;

@@ -10,12 +10,13 @@ import {
 import { useOrgChart } from "@/context/OrgChartContext";
 import { GAPS, BACKGROUNDS, BORDERS, LAYOUTS, DEPARTMENT_GAPS, COMMON_STYLES, CONNECTORS } from '@/components/common/styles';
 import { getPage1SpacingConfig, getVerticalSpacing, getHorizontalSpacing } from "@/components/common/spacingConfig";
-import { 
-  InteractivePositionBox, 
-  PositionData, 
+import {
+  InteractivePositionBox,
+  PositionData,
   createPositionDataFromLegacy,
   useInteractivePositionBox
 } from "@/components/common/InteractivePositionBox";
+import { classifyPosition } from "@/components/common/ClassificationEngine";
 import { ReactFlowPage1 } from "@/components/common/ReactFlowPage1";
 import { ReactFlowInstance } from 'reactflow';
 
@@ -47,288 +48,19 @@ const defaultConfig: Config = {
   assemblyCount: 1,
 };
 
-// ---------------------------
-// getProcessGroups 함수 - 모델 데이터 기반 공정 분리 기능
-// ---------------------------
-function getProcessGroups(config: Config, selectedModel?: any, lineIndex?: number, context: 'display' | 'calculation' = 'display') {
-  if (!selectedModel) {
-    // 모델이 없을 때 기본 구조
-    if (context === 'display') {
-      // 디스플레이 컨텍스트에서는 Stockfit-Assembly를 병합
-      return {
-        mainProcesses: [
-          {
-            gl: { subtitle: "Stitching", count: 1 },
-            tlGroup: [{ subtitle: "No Process" }],
-            tmGroup: [{ subtitle: "No Data" }],
-            showGL: true
-          },
-          {
-            gl: { subtitle: "Stockfit-Assembly", count: 1 },
-            tlGroup: [
-              { subtitle: "Stockfit" },
-              { subtitle: "Input" }, 
-              { subtitle: "Cementing" }, 
-              { subtitle: "Finishing" }
-            ],
-            tmGroup: [
-              { subtitle: "MH → Assembly (Stockfit)" },
-              { subtitle: "MH → Assembly" },
-              { subtitle: "MH → FG WH" },
-              { subtitle: "MH → Last" },
-            ],
-            showGL: true
-          },
-        ],
-        separatedProcesses: []
-      };
-    } else {
-      // 계산 컨텍스트에서는 기존 구조 유지
-      return {
-        mainProcesses: [
-          {
-            gl: { subtitle: "Stitching", count: 1 },
-            tlGroup: [{ subtitle: "No Process" }],
-            tmGroup: [{ subtitle: "No Data" }],
-            showGL: true
-          },
-          {
-            gl: { subtitle: "Stockfit", count: 1 },
-            tlGroup: [{ subtitle: "Stockfit" }],
-            tmGroup: [{ subtitle: "MH → Assembly" }],
-            showGL: true
-          },
-          {
-            gl: { subtitle: "Assembly", count: 1 },
-            tlGroup: [{ subtitle: "Input" }, { subtitle: "Cementing" }, { subtitle: "Finishing" }],
-            tmGroup: [
-              { subtitle: "MH → Assembly" },
-              { subtitle: "MH → FG WH" },
-              { subtitle: "MH → Last" },
-            ],
-            showGL: true
-          },
-        ],
-        separatedProcesses: []
-      };
-    }
-  }
-
-  // 모델의 공정들을 분류
-  const allProcesses = selectedModel.processes || [];
-  
-  // 1. Stitching 관련 공정들 (stitching 단어 포함)
-  const stitchingProcesses = allProcesses.filter((process: any) => 
-    process.name.toLowerCase().includes('stitching')
-  );
-  
-  // 2. Stockfit 관련 공정들
-  const stockfitProcesses = allProcesses.filter((process: any) => 
-    process.name.toLowerCase().includes('stockfit')
-  );
-  
-  // 3. Assembly 관련 공정들 (no-sew, hf welding 제외)
-  const assemblyProcesses = allProcesses.filter((process: any) => {
-    const name = process.name.toLowerCase();
-    return !name.includes('stitching') && 
-           !name.includes('stockfit') && 
-           !name.includes('no-sew') && 
-           !name.includes('hf welding') &&
-           !name.includes('cutting');
-  });
-
-  // 메인 공정 그룹 구성
-  const mainProcesses = [];
-
-  // 1. Stitching 그룹
-  if (stitchingProcesses.length > 0) {
-    mainProcesses.push({
-      gl: { subtitle: "Stitching", count: 1 },
-      tlGroup: stitchingProcesses.map((process: any) => ({ 
-        subtitle: process.name,
-        manpower: process.manAsy 
-      })),
-      tmGroup: stitchingProcesses.map((process: any) => ({ 
-        subtitle: `${process.name} TM`,
-        manpower: process.manAsy 
-      })),
-      processes: stitchingProcesses,
-      showGL: true
-    });
-  }
-
-  // 2 & 3. Stockfit-Assembly 그룹 (display 컨텍스트) 또는 개별 그룹 (calculation 컨텍스트)
-  if (context === 'display') {
-    // 디스플레이 컨텍스트에서는 Stockfit-Assembly를 병합
-    
-    // Stockfit TL 그룹
-    const stockfitTLGroup = stockfitProcesses.map((process: any) => ({ 
-      subtitle: `${process.name} (Stockfit)`,
-      manpower: process.manAsy 
-    }));
-    
-    // Assembly TL 그룹 (고정 TL + 실제 공정)
-    const assemblyTLGroup = [
-      { subtitle: "Input (Assembly)", manpower: 5 },
-      { subtitle: "Cementing (Assembly)", manpower: 8 },
-      { subtitle: "Finishing (Assembly)", manpower: 6 }
-    ];
-    
-    // 실제 assembly 공정이 있으면 추가
-    if (assemblyProcesses.length > 0) {
-      assemblyProcesses.forEach((process: any) => {
-        assemblyTLGroup.push({ 
-          subtitle: `${process.name} (Assembly)`,
-          manpower: process.manAsy 
-        });
-      });
-    }
-    
-    // 병합된 TM 그룹
-    const mergedTMGroup = [
-      { subtitle: "Stockfit", manpower: stockfitProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0) },
-      { subtitle: "Assembly", manpower: assemblyProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0) },
-      { subtitle: "Assembly Last", manpower: 0 }
-    ];
-    
-    // 병합된 Stockfit-Assembly 그룹 추가
-    const stockfitManpower = stockfitProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0);
-    const assemblyManpower = assemblyProcesses.reduce((sum: number, p: any) => sum + (p.manAsy || 0), 0);
-    const totalManpower = stockfitManpower + assemblyManpower;
-    
-    mainProcesses.push({
-      gl: { 
-        subtitle: totalManpower > 0 ? `Stockfit-Assembly [${totalManpower}]` : "Stockfit-Assembly", 
-        count: 1 
-      },
-      tlGroup: [...stockfitTLGroup, ...assemblyTLGroup],
-      tmGroup: mergedTMGroup,
-      processes: [...stockfitProcesses, ...assemblyProcesses],
-      showGL: true,
-      sourceProcesses: {
-        stockfit: stockfitProcesses,
-        assembly: assemblyProcesses
-      }
-    });
-  } else {
-    // 계산 컨텍스트에서는 기존 구조 유지 (Stockfit과 Assembly 분리)
-    
-    // 2. Stockfit 그룹
-    if (stockfitProcesses.length > 0) {
-      mainProcesses.push({
-        gl: { subtitle: "Stockfit", count: 1 },
-        tlGroup: stockfitProcesses.map((process: any) => ({ 
-          subtitle: process.name,
-          manpower: process.manAsy 
-        })),
-        tmGroup: [{ subtitle: "MH → Assembly" }],
-        processes: stockfitProcesses,
-        showGL: true
-      });
-    }
-
-    // 3. Assembly 그룹 (고정 TL + 실제 공정)
-    const assemblyTLGroup = [
-      { subtitle: "Input", manpower: 5 },
-      { subtitle: "Cementing", manpower: 8 },
-      { subtitle: "Finishing", manpower: 6 }
-    ];
-    
-    // 실제 assembly 공정이 있으면 추가
-    if (assemblyProcesses.length > 0) {
-      assemblyProcesses.forEach((process: any) => {
-        assemblyTLGroup.push({ 
-          subtitle: process.name,
-          manpower: process.manAsy 
-        });
-      });
-    }
-
-    mainProcesses.push({
-      gl: { subtitle: "Assembly", count: 1 },
-      tlGroup: assemblyTLGroup,
-      tmGroup: [
-        { subtitle: "MH → Assembly" },
-        { subtitle: "MH → FG WH" },
-        { subtitle: "MH → Last" },
-      ],
-      processes: assemblyProcesses,
-      showGL: true
-    });
-  }
-
-  return { 
-    mainProcesses, 
-    separatedProcesses: getSeparatedProcesses(selectedModel, config) 
-  };
-}
-
-// No-sew와 HF Welding을 위한 분리된 공정 그룹
-function getSeparatedProcesses(selectedModel?: any, config?: Config) {
-  if (!selectedModel || !config) return [];
-
-  const separatedProcessNames = ['cutting no-sew', 'hf welding', 'no-sew'];
-  const separatedProcesses = selectedModel.processes.filter((process: any) => 
-    separatedProcessNames.some(name => 
-      process.name.toLowerCase().includes(name.toLowerCase()) || 
-      name.toLowerCase().includes(process.name.toLowerCase())
-    )
-  );
-
-  if (separatedProcesses.length === 0) return [];
-
-  // 시프트 수에 따라 no-sew A, B 구분
-  const tlGroup: Array<{ subtitle: string; manpower?: number; shiftIndex?: number }> = [];
-  const tmGroup: Array<{ subtitle: string; manpower?: number }> = [];
-
-  separatedProcesses.forEach((process: any) => {
-    const processName = process.name;
-    
-    // no-sew 공정인 경우 시프트 수에 따라 A, B 구분
-    if (processName.toLowerCase().includes('no-sew')) {
-      for (let i = 0; i < config.shiftsCount; i++) {
-        const suffix = i === 0 ? 'A' : 'B';
-        tlGroup.push({ 
-          subtitle: `${processName} ${suffix}`,
-          manpower: process.manAsy,
-          shiftIndex: i
-        });
-        tmGroup.push({ 
-          subtitle: `${processName} ${suffix} TM`,
-          manpower: process.manAsy 
-        });
-      }
-    } else {
-      // HF Welding 등 다른 공정은 그대로
-      tlGroup.push({ 
-        subtitle: processName,
-        manpower: process.manAsy 
-      });
-      tmGroup.push({ 
-        subtitle: `${processName} TM`,
-        manpower: process.manAsy 
-      });
-    }
-  });
-
-  return [{
-    gl: { subtitle: "No-sew/HF Welding", count: 1 },
-    tlGroup,
-    tmGroup,
-    processes: separatedProcesses
-  }];
-}
+// Import the real getProcessGroups function from ReactFlowPage1
+import { getProcessGroups } from '@/components/common/ReactFlowPage1';
 
 // ---------------------------
 // 메인 컴포넌트
 // ---------------------------
 const Page1: React.FC = () => {
-  const { 
-    config, 
-    updateConfig, 
-    models, 
-    lineModelSelections, 
-    updateLineModelSelection 
+  const {
+    config,
+    updateConfig,
+    models,
+    lineModelSelections,
+    updateLineModelSelection
   } = useOrgChart();
 
   // InteractivePositionBox 훅 사용
@@ -364,16 +96,40 @@ const Page1: React.FC = () => {
     title: string,
     subtitle?: string,
     level: number = 0,
-    colorCategory?: 'direct' | 'indirect' | 'OH',
+    department?: string,
+    processType?: string,
     additionalData?: Partial<PositionData>
   ) => {
-    const data = createPositionDataFromLegacy(title, subtitle, level, colorCategory);
+    // 부서명 결정 - additionalData에서 우선 가져오고, 없으면 매개변수 사용
+    const finalDepartment = additionalData?.department || department || 'Line';
     
+    // 레벨을 문자열로 변환
+    const levelMap: Record<number, 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT'> = {
+      0: 'PM',
+      1: 'LM', 
+      2: 'GL',
+      3: 'TL',
+      4: 'TM',
+      5: 'DEPT'
+    };
+    const levelString = levelMap[level] || 'TM';
+    
+    // 분류 엔진을 사용하여 colorCategory 결정 (additionalData에 명시적으로 제공된 경우 우선 사용)
+    const colorCategory = additionalData?.colorCategory || classifyPosition(
+      finalDepartment,
+      levelString,
+      processType,
+      subtitle,
+      title
+    );
+
+    const data = createPositionDataFromLegacy(title, subtitle, level, colorCategory);
+
     // 추가 데이터 병합
     if (additionalData) {
       Object.assign(data, additionalData);
     }
-    
+
     // 선택/하이라이트 상태 적용
     data.isSelected = selectedPosition?.id === data.id;
     data.isHighlighted = highlightedPositions.includes(data.id);
@@ -404,9 +160,9 @@ const Page1: React.FC = () => {
       if (!selectedModel) return;
 
       const separatedProcessNames = ['cutting no-sew', 'hf welding', 'no-sew'];
-      const separatedProcesses = selectedModel.processes.filter((process: any) => 
-        separatedProcessNames.some(name => 
-          process.name.toLowerCase().includes(name.toLowerCase()) || 
+      const separatedProcesses = selectedModel.processes.filter((process: any) =>
+        separatedProcessNames.some(name =>
+          process.name.toLowerCase().includes(name.toLowerCase()) ||
           name.toLowerCase().includes(process.name.toLowerCase())
         )
       );
@@ -414,10 +170,10 @@ const Page1: React.FC = () => {
       if (separatedProcesses.length === 0) return;
 
       const processesForLine: Array<{ name: string; manAsy: number; shiftIndex?: number }> = [];
-      
+
       separatedProcesses.forEach((process: any) => {
         const processName = process.name;
-        
+
         if (processName.toLowerCase().includes('no-sew')) {
           for (let i = 0; i < config.shiftsCount; i++) {
             const suffix = i === 0 ? 'A' : 'B';
@@ -504,13 +260,14 @@ const Page1: React.FC = () => {
               {/* GL (No-sew만) */}
               {col.gl && (
                 <div className="mb-2">
-                  {createInteractiveBox("GL", col.label, 2, "direct", {
-                    department: col.label + " 부",
+                  {createInteractiveBox("GL", col.label, 2, col.label, col.type, {
+                    department: col.label,
                     manpower: 1,
                     responsibilities: [col.label + " 관리", "특수 작업"],
                     processName: col.label,
                     efficiency: 90,
-                    status: "active"
+                    status: "active",
+
                   })}
                 </div>
               )}
@@ -525,15 +282,17 @@ const Page1: React.FC = () => {
                     "TL",
                     `TL [${line.manpower}] / Line ${line.lineIdx + 1} / ${col.label}`,
                     3,
-                    "direct",
+                    col.label,
+                    col.type,
                     {
-                      department: `Line ${line.lineIdx + 1} ${col.label} 팀`,
+                      department: col.label,
                       manpower: line.manpower,
                       responsibilities: [`Line ${line.lineIdx + 1} ${col.label} 운영`],
                       processName: `Line ${line.lineIdx + 1} ${col.label}`,
                       efficiency: 85,
                       status: "active",
-                      lineIndex: line.lineIdx
+                      lineIndex: line.lineIdx,
+
                     }
                   )}
                 </div>
@@ -547,15 +306,17 @@ const Page1: React.FC = () => {
                     "TM",
                     `TM(MH) / Line ${line.lineIdx + 1} Cutting / → ${col.label}`,
                     4,
-                    "direct",
+                    col.label,
+                    col.type,
                     {
-                      department: `Line ${line.lineIdx + 1} Cutting → ${col.label} 팀`,
+                      department: col.label,
                       manpower: line.manpower,
                       responsibilities: [`Line ${line.lineIdx + 1} Cutting → ${col.label} 작업`],
                       processName: `Line ${line.lineIdx + 1} Cutting → ${col.label}`,
                       efficiency: 80,
                       status: "active",
-                      lineIndex: line.lineIdx
+                      lineIndex: line.lineIdx,
+
                     }
                   )}
                 </div>
@@ -581,7 +342,7 @@ const Page1: React.FC = () => {
     // 클릭 대상이 InteractivePositionBox 내부인지 확인
     const target = e.target as HTMLElement;
     const isInteractiveBox = target.closest('[data-position-id]');
-    
+
     // InteractivePositionBox가 아닌 경우에만 드래그 시작
     if (!isInteractiveBox && (e.button === 0 || e.button === 1)) {
       e.preventDefault();
@@ -593,10 +354,10 @@ const Page1: React.FC = () => {
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    
+
     const dx = e.clientX - dragStart.x;
     const dy = e.clientY - dragStart.y;
-    
+
     // 드래그 임계값을 넘었는지 확인
     if (!hasDraggedEnough) {
       const distance = Math.sqrt(dx * dx + dy * dy);
@@ -604,10 +365,10 @@ const Page1: React.FC = () => {
         setHasDraggedEnough(true);
       }
     }
-    
+
     if (hasDraggedEnough) {
-    setDragStart({ x: e.clientX, y: e.clientY });
-    setTranslate((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+      setDragStart({ x: e.clientX, y: e.clientY });
+      setTranslate((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
     }
   };
 
@@ -646,7 +407,7 @@ const Page1: React.FC = () => {
     const padding = 40;
     const availableWidth = containerRect.width - padding * 2;
     const availableHeight = containerRect.height - padding * 2;
-    
+
     const scaleX = availableWidth / chartRect.width;
     const scaleY = availableHeight / chartRect.height;
     const newScale = Math.min(scaleX, scaleY, 1);
@@ -654,7 +415,7 @@ const Page1: React.FC = () => {
     // 중앙 정렬을 위한 offset 계산
     const scaledWidth = chartRect.width * newScale;
     const scaledHeight = chartRect.height * newScale;
-    
+
     const offsetX = (containerRect.width - scaledWidth) / 2;
     const offsetY = (containerRect.height - scaledHeight) / 2;
 
@@ -666,27 +427,27 @@ const Page1: React.FC = () => {
   // 인원 수 계산
   const calculatePositionCount = (position: string): number => {
     if (position === "PM") return 1;
-    
+
     if (position === "LM") {
       // LM은 2개 라인당 1명으로 계산 (ReactFlowPage1과 일치)
       return Math.ceil(config.lineCount / 2);
     }
-    
+
     // 모델 기반 인원 계산
     let total = 0;
-    
+
     lineModelSelections.forEach((modelIndex, lineIndex) => {
       const selectedModel = models[modelIndex];
       if (!selectedModel) return;
-      
+
       // 'display' 컨텍스트를 명시적으로 전달하여 병합된 구조를 사용
       const { mainProcesses, separatedProcesses } = getProcessGroups(config, selectedModel, lineIndex, 'display');
-      
+
       // 메인 공정들의 인원 계산
       mainProcesses.forEach((group) => {
         // 병합된 Stockfit-Assembly 노드 처리
         const isStockfitAssembly = group.gl?.subtitle?.includes('Stockfit-Assembly');
-        
+
         if (position === "GL") {
           // 병합된 노드는 하나의 GL로 계산
           total += group.gl.count || 1;
@@ -698,7 +459,7 @@ const Page1: React.FC = () => {
           total += group.tmGroup?.length || 0;
         }
       });
-      
+
       // 분리된 공정들의 인원 계산
       separatedProcesses.forEach((group) => {
         if (position === "GL") {
@@ -711,14 +472,14 @@ const Page1: React.FC = () => {
         }
       });
     });
-    
+
     return total;
   };
 
   // 라인별 모델 상세 정보 계산
   const getLineModelDetails = () => {
     if (models.length === 0 || lineModelSelections.length === 0) return [];
-    
+
     return lineModelSelections.map((modelIndex, lineIndex) => {
       const model = models[modelIndex] || models[0];
       return {
@@ -733,7 +494,7 @@ const Page1: React.FC = () => {
   // 모델별 상세 인원 정보 계산 (기존 함수 유지 - 호환성용)
   const getModelDetails = () => {
     if (models.length === 0) return [];
-    
+
     return models.map(model => ({
       ...model,
       totalManpower: model.processes.reduce((total: number, process: any) => total + process.manAsy, 0),
@@ -749,7 +510,7 @@ const Page1: React.FC = () => {
     TL: calculatePositionCount("TL"),
     TM: calculatePositionCount("TM")
   };
-  
+
   const totalPeople = Object.values(positionCounts).reduce((acc, count) => acc + count, 0);
 
   // 관련 위치 ID들을 찾는 함수
@@ -778,8 +539,8 @@ const Page1: React.FC = () => {
             height: '100%',
           }}
         >
-          <ReactFlowPage1 
-            lineModelSelections={lineModelSelections} 
+          <ReactFlowPage1
+            lineModelSelections={lineModelSelections}
             onInit={(inst) => setRfInstance(inst)}
           />
         </div>
@@ -796,7 +557,7 @@ const Page1: React.FC = () => {
             <span className="text-sm font-semibold text-black">OH</span>
           </div>
         </div>
-        
+
         {/* 인원 요약 정보 패널 - 오른쪽 상단 */}
         <div className="fixed right-8 top-24 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
           <div className="font-semibold text-lg mb-2">인원 요약</div>
@@ -830,24 +591,24 @@ const Page1: React.FC = () => {
 
         {/* 줌 컨트롤 - 왼쪽 상단 (드롭다운과 겹치지 않도록 아래로) */}
         <div className="fixed left-8 top-28 flex flex-col gap-2 z-50">
-              <button
-                onClick={handleZoomIn}
+          <button
+            onClick={handleZoomIn}
             className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
-              >
+          >
             🔍+
-              </button>
-              <button
-                onClick={handleZoomOut}
+          </button>
+          <button
+            onClick={handleZoomOut}
             className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
-              >
+          >
             🔍-
-              </button>
-              <button
-                onClick={handleZoomReset}
+          </button>
+          <button
+            onClick={handleZoomReset}
             className="bg-white border border-gray-300 px-3 py-2 rounded shadow hover:bg-gray-50"
-              >
+          >
             ↻
-              </button>
+          </button>
         </div>
 
         {/* 선택된 위치 정보 패널 (왼쪽 상단) */}
@@ -863,7 +624,7 @@ const Page1: React.FC = () => {
                 <div><strong>담당업무:</strong> {selectedPosition.responsibilities.join(', ')}</div>
               )}
             </div>
-            <button 
+            <button
               onClick={() => setSelectedPosition(null)}
               className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs hover:bg-gray-300"
             >
@@ -874,95 +635,95 @@ const Page1: React.FC = () => {
 
         {/* 설정 패널 - 우측 하단으로 이동 */}
         <div className="fixed right-8 bottom-8 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
-            <div className="flex items-center space-x-4 mb-4">
-              <label className="flex flex-col">
-                <span className="text-sm font-semibold">라인 수</span>
-                <input
-                  type="number"
-                  className="w-20 border p-1 rounded"
-                  value={config.lineCount}
-                  min="1" 
-                  max="8"
-                  step="1"
-                  onChange={(e) => {
-                    const inputValue = e.target.value === '' ? '1' : e.target.value;
-                    const value = Math.max(1, Math.min(8, parseInt(inputValue) || 1));
-                    updateConfig({ lineCount: value });
-                  }}
-                  style={{ 
-                    appearance: 'auto',
-                    margin: 0,
-                  }}
-                />
-              </label>
-              <label className="flex flex-col">
-                <span className="text-sm font-semibold">쉬프트 수</span>
-                <input
-                  type="number"
-                  className="w-20 border p-1 rounded"
-                  value={config.shiftsCount}
-                  min="1"
-                  max="5"
-                  step="1"
-                  onChange={(e) => {
-                    const inputValue = e.target.value === '' ? '1' : e.target.value;
-                    const value = Math.max(1, Math.min(5, parseInt(inputValue) || 1));
-                    updateConfig({ shiftsCount: value });
-                  }}
-                  style={{ 
-                    appearance: 'auto',
-                    margin: 0,
-                  }}
-                />
-              </label>
-              <label className="flex flex-col">
-                <span className="text-sm font-semibold">미니 라인 수</span>
-                <input
-                  type="number"
-                  className="w-20 border p-1 rounded"
-                  value={config.miniLineCount}
-                  min="1"
-                  max="5"
-                  step="1"
-                  onChange={(e) => {
-                    const inputValue = e.target.value === '' ? '1' : e.target.value;
-                    const value = Math.max(1, Math.min(5, parseInt(inputValue) || 1));
-                    updateConfig({ miniLineCount: value });
-                  }}
-                  style={{ 
-                    appearance: 'auto',
-                    margin: 0,
-                  }}
-                />
-              </label>
+          <div className="flex items-center space-x-4 mb-4">
+            <label className="flex flex-col">
+              <span className="text-sm font-semibold">라인 수</span>
+              <input
+                type="number"
+                className="w-20 border p-1 rounded"
+                value={config.lineCount}
+                min="1"
+                max="8"
+                step="1"
+                onChange={(e) => {
+                  const inputValue = e.target.value === '' ? '1' : e.target.value;
+                  const value = Math.max(1, Math.min(8, parseInt(inputValue) || 1));
+                  updateConfig({ lineCount: value });
+                }}
+                style={{
+                  appearance: 'auto',
+                  margin: 0,
+                }}
+              />
+            </label>
+            <label className="flex flex-col">
+              <span className="text-sm font-semibold">쉬프트 수</span>
+              <input
+                type="number"
+                className="w-20 border p-1 rounded"
+                value={config.shiftsCount}
+                min="1"
+                max="5"
+                step="1"
+                onChange={(e) => {
+                  const inputValue = e.target.value === '' ? '1' : e.target.value;
+                  const value = Math.max(1, Math.min(5, parseInt(inputValue) || 1));
+                  updateConfig({ shiftsCount: value });
+                }}
+                style={{
+                  appearance: 'auto',
+                  margin: 0,
+                }}
+              />
+            </label>
+            <label className="flex flex-col">
+              <span className="text-sm font-semibold">미니 라인 수</span>
+              <input
+                type="number"
+                className="w-20 border p-1 rounded"
+                value={config.miniLineCount}
+                min="1"
+                max="5"
+                step="1"
+                onChange={(e) => {
+                  const inputValue = e.target.value === '' ? '1' : e.target.value;
+                  const value = Math.max(1, Math.min(5, parseInt(inputValue) || 1));
+                  updateConfig({ miniLineCount: value });
+                }}
+                style={{
+                  appearance: 'auto',
+                  margin: 0,
+                }}
+              />
+            </label>
 
-            </div>
-            
-            {/* 라인별 모델 선택 */}
-            {models.length > 0 && (
-              <div className="border-t pt-4">
-                <div className="text-sm font-semibold mb-2">라인별 모델 선택:</div>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                  {Array(config.lineCount).fill(null).map((_, lineIndex) => (
-                    <div key={lineIndex} className="flex items-center space-x-2">
-                      <span className="text-xs font-medium w-12">Line {lineIndex + 1}:</span>
-                      <Select
-                        size="small"
-                        value={lineModelSelections[lineIndex] || 0}
-                        onChange={(e) => updateLineModelSelection(lineIndex, parseInt(e.target.value as string))}
-                        className="flex-1"
-                      >
-                        {models.map((model, modelIndex) => (
-                          <MenuItem key={modelIndex} value={modelIndex}>
-                            <span className="text-xs">{model.category} - {model.modelName}</span>
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </div>
-                  ))}
-                </div>
+          </div>
+
+          {/* 라인별 모델 선택 */}
+          {models.length > 0 && (
+            <div className="border-t pt-4">
+              <div className="text-sm font-semibold mb-2">라인별 모델 선택:</div>
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                {Array(config.lineCount).fill(null).map((_, lineIndex) => (
+                  <div key={lineIndex} className="flex items-center space-x-2">
+                    <span className="text-xs font-medium w-12">Line {lineIndex + 1}:</span>
+                    <Select
+                      size="small"
+                      value={lineModelSelections[lineIndex] || 0}
+                      onChange={(e) => updateLineModelSelection(lineIndex, parseInt(e.target.value as string))}
+                      className="flex-1"
+                    >
+                      {models.map((model, modelIndex) => (
+                        <MenuItem key={modelIndex} value={modelIndex}>
+                          <span className="text-xs">{model.category} - {model.modelName}</span>
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
         </div>
 
 
