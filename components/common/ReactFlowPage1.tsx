@@ -11,7 +11,9 @@ import ReactFlow, {
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
 import { nodeTypes } from './CustomPositionNode';
+import CustomCenterYEdge from './CustomCenterYEdge';
 import { classifyPosition } from './ClassificationEngine';
+import { LEVEL_HEIGHT, COL_SPACING, DEPT_GUTTER, average, sequentialGLToTLMapping, getHierarchyY, getTMY } from './LayoutUtils';
 
 // getProcessGroups 함수 - 모델 데이터 기반 공정 분리 기능
 export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number, context: 'display' | 'calculation' = 'display') {
@@ -401,10 +403,12 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
     const getNextId = () => `node-${idCounter++}`;
 
-    // 레이아웃 설정
-    const levelHeight = 120;
-    const glSpacing = 150;
-    const linePadding = 100; // 라인 간의 추가 간격
+    // 레이아웃 설정 (ReactFlowPage2 간격 설정 참조)
+    // 1) 공통 LEVEL_HEIGHT 사용으로 통일
+    const levelHeight = LEVEL_HEIGHT;
+    const glSpacing = COL_SPACING; // 160px - 공통 열 간격 사용
+    const linePadding = 50; // 라인 간의 간격 축소 (기존 100px → 50px)
+    const pmBendY = 24; // PM 바로 하단 꺾임 위치(픽셀)
 
     // ===== 1. 각 라인의 너비를 미리 계산 =====
     const lineWidths = Array(config.lineCount).fill(null).map((_, lineIndex) => {
@@ -412,24 +416,24 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const selectedModel = models[modelIndex];
       const { mainProcesses } = getProcessGroups(config, selectedModel, lineIndex, context);
       const numGLs = mainProcesses.length > 0 ? mainProcesses.length : 1;
-      return Math.max(300, numGLs * glSpacing) + linePadding;
+      return Math.max(300, numGLs * glSpacing) + Math.abs(DEPT_GUTTER); // DEPT_GUTTER 절댓값 사용
     });
 
     // ===== 2. 전체 너비 계산 및 PM 노드 생성 =====
     const totalWidth = lineWidths.reduce((sum: number, width: number) => sum + width, 0);
     const pmId = getNextId();
     const pmX = totalWidth / 2 - 70;
-    nodes.push({
-      id: pmId,
-      type: 'position',
-      position: { x: pmX, y: 0 },
-      data: {
-        title: 'PM',
-        subtitle: 'Plant Manager',
-        level: 0,
-        colorCategory: classifyPosition('Line', 'PM', undefined, 'Plant Manager', 'PM')
-      },
-    });
+          nodes.push({
+        id: pmId,
+        type: 'position',
+        position: { x: pmX, y: getHierarchyY('PM') },
+        data: {
+          title: 'PM',
+          subtitle: 'Plant Manager',
+          level: 0,
+          colorCategory: classifyPosition('Line', 'PM', undefined, 'Plant Manager', 'PM')
+        },
+      });
 
     // ===== 3. 모든 라인 중 최대 TL 개수 계산 (TM 시작 Y 정렬용) =====
     let globalMaxTLCount = 0;
@@ -464,6 +468,9 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     // ===== 4. LM 노드 생성 (2개 라인당 1명) =====
     const vsmCount = Math.ceil(config.lineCount / 2);
     const vsmIds: string[] = [];
+    const vsmXs: number[] = [];
+    const vsmChildGlXs: Record<string, number[]> = {};
+    let pmChildXs: number[] = [];
 
     for (let vsmIndex = 0; vsmIndex < vsmCount; vsmIndex++) {
       const startLineIndex = vsmIndex * 2;
@@ -483,6 +490,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
       const vsmId = getNextId();
       vsmIds.push(vsmId);
+      vsmChildGlXs[vsmId] = [];
 
       // LM 제목 생성
       const lineRange = startLineIndex === endLineIndex
@@ -500,7 +508,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       nodes.push({
         id: vsmId,
         type: 'position',
-        position: { x: vsmX, y: levelHeight },
+        position: { x: vsmX, y: getHierarchyY('LM') },
         data: {
           title: 'LM',
           subtitle: vsmSubtitle,
@@ -508,14 +516,15 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           colorCategory: classifyPosition('Line', 'LM', undefined, vsmSubtitle, 'LM')
         },
       });
+      vsmXs.push(vsmX);
 
-      edges.push({
-        id: `edge-${pmId}-${vsmId}`,
-        source: pmId,
-        target: vsmId,
-        type: 'smoothstep',
-      });
+      // PM → LM: LM 레벨 Y좌표에서 꺾임 (다른 PM 연결과 일관성 확보)
+      edges.push({ id: `edge-${pmId}-${vsmId}`, source: pmId, target: vsmId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
     }
+
+    // PM X를 직하단(LM)들의 X 평균으로 재정렬
+    // PM 직하단 1단계 자식 X 목록 초기화(LM 포함)
+    pmChildXs = [...vsmXs];
 
     // ===== 5. 라인별 GL/TL/TM 노드 생성 =====
     let cumulativeX = 0;
@@ -527,13 +536,13 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const { mainProcesses } = getProcessGroups(config, selectedModel, lineIndex, context);
 
       const glStartX = lineX + (linePadding / 2);
-      const glY = levelHeight * 2;
+      const glY = getHierarchyY('GL');
 
       // 해당 라인을 관리하는 LM 찾기
       const vsmIndex = Math.floor(lineIndex / 2);
       const managingVsmId = vsmIds[vsmIndex];
 
-      const tmStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40;
+      const tmStartY = getHierarchyY('TM_BASE') + (globalMaxTLCount * 80) + 40;
 
       mainProcesses.forEach((processGroup, processIndex) => {
         let glId = '';
@@ -559,6 +568,9 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               sourceProcesses: isStockfitAssembly && 'sourceProcesses' in processGroup ? processGroup.sourceProcesses : undefined
             },
           });
+          // LM 직하단 자식 목록에 GL X 추가
+          const managingVsm = vsmIds[vsmIndex];
+          if (managingVsm) vsmChildGlXs[managingVsm].push(glX);
 
           edges.push({
             id: `edge-${managingVsmId}-${glId}`,
@@ -568,7 +580,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           });
         }
 
-        const tlStartY = glY + levelHeight;
+        const tlStartY = getHierarchyY('TL');
         let lastTlId = '';
         processGroup.tlGroup.forEach((tl: any, tlIndex: number) => {
           const tlId = getNextId();
@@ -602,12 +614,23 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
           if (tlIndex === 0) {
             const sourceId = (processGroup.showGL !== false && glId) ? glId : managingVsmId;
-            edges.push({
-              id: `edge-${sourceId}-${tlId}`,
-              source: sourceId,
-              target: tlId,
-              type: 'smoothstep',
-            });
+            if (processGroup.showGL !== false && glId) {
+              edges.push({
+                id: `edge-${sourceId}-${tlId}`,
+                source: sourceId,
+                target: tlId,
+                type: 'smoothstep',
+              });
+            } else {
+              // LM → TL (skip): bend at mid between LM and GL (levelHeight + levelHeight/2)
+              edges.push({
+                id: `edge-${sourceId}-${tlId}`,
+                source: sourceId,
+                target: tlId,
+                type: 'smoothstep',
+                pathOptions: ({ offset: 24, centerY: (glY - (levelHeight /2 )) } as any)
+              });
+            }
           } else {
             edges.push({
               id: `edge-${lastTlId}-${tlId}`,
@@ -624,7 +647,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           processGroup.tmGroup.forEach((tm: any, tmIndex: number) => {
             const tmId = getNextId();
             const tmX = glX;
-            const tmY = tmStartY + (tmIndex * 80);
+            const tmY = getTMY(tmStartY, tmIndex);
 
             // 병합된 Stockfit-Assembly 노드의 TM 처리
             const isStockfitAssemblyTM = tm.subtitle &&
@@ -664,12 +687,13 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     });
 
     // ===== 6. 분리된 공정 노드 생성 =====
-    const separatedStartX = cumulativeX + 160;
+    // Page2 DEPT_GUTTER를 참조하여 간격 축소
+    const separatedStartX = cumulativeX + 100; // 기존 160px → 100px
 
-    const vsmY = levelHeight;
-    const glY = levelHeight * 2;
-    const tlStartY = levelHeight * 3;
-    const globalTMStartY = glY + levelHeight + (globalMaxTLCount * 80) + 40;
+    const vsmY = getHierarchyY('LM');
+    const glY = getHierarchyY('GL');
+    const tlStartY = getHierarchyY('TL');
+    const globalTMStartY = getHierarchyY('TM_BASE') + (globalMaxTLCount * 80) + 40;
 
     let currentSeparatedX = separatedStartX;
     const topConnectionNodeId = pmId;
@@ -684,16 +708,16 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const colXs = Array.from({ length: totalCols }, (_, i) => currentSeparatedX + i * glSpacing);
       const glIds: string[] = [];
 
-      // GL과 빈 박스 생성
+      // GL 생성 (빈 박스 제거) + PM → GL 직접 연결
+      // PM 바로 하단 꺾임 위치(픽셀). 필요 시 조정 가능
+      const pmBendY = 24;
       colXs.forEach((xPos, idx) => {
-        const nodeId = getNextId();
-
         if (idx < requiredGLCount) {
-          // 실제 GL 노드
-          glIds.push(nodeId);
+          const glId = getNextId();
+          glIds.push(glId);
           const glSubtitle = requiredGLCount === 1 ? 'No-sew' : `No-sew ${String.fromCharCode(65 + idx)}`; // A, B, C, D...
           nodes.push({
-            id: nodeId,
+            id: glId,
             type: 'position',
             position: { x: xPos, y: glY },
             data: {
@@ -703,22 +727,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               colorCategory: classifyPosition('No-sew', 'GL', 'No-sew', glSubtitle, 'GL')
             }
           });
-        } else {
-          // 빈 박스
-          glIds.push(nodeId);
-          nodes.push({
-            id: nodeId,
-            type: 'position',
-            position: { x: xPos, y: glY },
-            data: { title: '', subtitle: '', colorCategory: 'blank' }
-          });
+          // PM → GL: bend at mid between PM and LM using centerToLevelY
+          edges.push({ id: `edge-${topConnectionNodeId}-${glId}`, source: topConnectionNodeId, target: glId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
         }
       });
-
-      const blankLMId = getNextId();
-      nodes.push({ id: blankLMId, type: 'position', position: { x: currentSeparatedX + (totalCols - 1) * glSpacing / 2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' } });
-      edges.push({ id: `edge-${topConnectionNodeId}-${blankLMId}`, source: topConnectionNodeId, target: blankLMId, type: 'smoothstep' });
-      glIds.forEach(glId => edges.push({ id: `edge-${blankLMId}-${glId}`, source: blankLMId, target: glId, type: 'smoothstep' }));
 
       // TL 생성 및 연결 - Fix: Use shift-based column assignment instead of round-robin
       const columnTLHistory: { [colIndex: number]: string[] } = {}; // 각 열의 TL ID 히스토리
@@ -748,11 +760,16 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             }
           });
 
-          // 연결: 첫 번째 TL은 GL/빈박스에서, 나머지는 바로 위 TL에서
+          // 연결: 첫 번째 TL은 (해당 열 GL이 있으면) GL에서, 없으면 PM에서. 이후는 바로 위 TL에서
           if (!columnTLHistory[colIndex] || columnTLHistory[colIndex].length === 0) {
-            // 각 열의 첫 번째 TL은 GL/빈박스에서 연결
             const targetGLId = glIds[colIndex];
-            edges.push({ id: `edge-${targetGLId}-${tlId}`, source: targetGLId, target: tlId, type: 'smoothstep' });
+            const sourceId = targetGLId || topConnectionNodeId;
+            if (sourceId === topConnectionNodeId) {
+              // PM → TL: bend at mid between PM and LM using centerToLevelY
+              edges.push({ id: `edge-${sourceId}-${tlId}`, source: sourceId, target: tlId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
+            } else {
+              edges.push({ id: `edge-${sourceId}-${tlId}`, source: sourceId, target: tlId, type: 'smoothstep' });
+            }
             columnTLHistory[colIndex] = [tlId];
           } else {
             // 나머지 TL은 바로 위 TL에서 연결
@@ -781,14 +798,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     }
 
     if (linesWithHfWelding.length > 0) {
-      currentSeparatedX += glSpacing; // gap after nosew
+      currentSeparatedX += Math.abs(DEPT_GUTTER); // Page2와 동일한 부서간 간격 사용 (50px)
 
       const hfCols = config.shiftsCount || 1;
-      const hfXs = Array.from({ length: hfCols }, (_, i) => currentSeparatedX + i * glSpacing);
-
-      const blankLMId = getNextId();
-      nodes.push({ id: blankLMId, type: 'position', position: { x: currentSeparatedX + (hfCols - 1) * glSpacing / 2, y: vsmY }, data: { title: '', subtitle: '', colorCategory: 'blank' } });
-      edges.push({ id: `edge-${topConnectionNodeId}-${blankLMId}`, source: topConnectionNodeId, target: blankLMId, type: 'smoothstep' });
+    const hfXs = Array.from({ length: hfCols }, (_, i) => currentSeparatedX + i * glSpacing);
 
       const colTopTlIds: (string | null)[] = Array(hfCols).fill(null);
       let colLastNodeIds: (string | null)[] = Array(hfCols).fill(null);
@@ -813,8 +826,9 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             }
           });
 
-          if (i === 0) {
-            edges.push({ id: `edge-${blankLMId}-${tlId}`, source: blankLMId, target: tlId, type: 'smoothstep' });
+            if (i === 0) {
+            // PM → TL 첫 연결: bend at mid between PM and LM using centerToLevelY
+            edges.push({ id: `edge-${topConnectionNodeId}-${tlId}`, source: topConnectionNodeId, target: tlId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
             colTopTlIds[colIdx] = tlId;
           } else {
             const aboveTlId = nodes.find(n => n.position.x === xPos && n.position.y === tlStartY + (i - 1) * 80)?.id;
@@ -841,13 +855,28 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             }
           });
 
-          const sourceNodeId = colLastNodeIds[colIdx] || blankLMId;
+      const sourceNodeId = colLastNodeIds[colIdx] || topConnectionNodeId;
           edges.push({ id: `edge-${sourceNodeId}-${tmId}`, source: sourceNodeId, target: tmId, type: 'smoothstep' });
           colLastNodeIds[colIdx] = tmId;
         }
       });
 
       currentSeparatedX += hfCols * glSpacing;
+    }
+
+    // LM X를 자신의 직하단(GL들) 평균으로 재정렬
+    vsmIds.forEach((vsmId) => {
+      const glXs = vsmChildGlXs[vsmId];
+      if (glXs && glXs.length > 0) {
+        const node = nodes.find(n => n.id === vsmId);
+        if (node) node.position.x = average(glXs);
+      }
+    });
+
+    // PM X를 직하단(LM들) 평균으로 재정렬 (이미 pmChildXs에 LM X 누적됨)
+    if (pmChildXs.length > 0) {
+      const pmNode = nodes.find(n => n.id === pmId);
+      if (pmNode) pmNode.position.x = average(pmChildXs) - 70;
     }
 
     return { nodes, edges };
@@ -876,6 +905,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        edgeTypes={{ customCenterY: CustomCenterYEdge }}
         fitView
         attributionPosition="top-right"
         style={{ width: '100%', height: '100%' }}
