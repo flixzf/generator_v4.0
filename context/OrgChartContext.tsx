@@ -39,6 +39,7 @@ type Config = {
   stitchingCount: number;
   stockfitCount: number;
   assemblyCount: number;
+  qaPrs?: number;  // QA PRS 추가
 };
 
 type OrgChartData = {
@@ -857,7 +858,8 @@ export function OrgChartProvider({ children }: { children: React.ReactNode }) {
     cuttingPrefitCount: 1,
     stitchingCount: 1,
     stockfitCount: 1,
-    assemblyCount: 1
+    assemblyCount: 1,
+    qaPrs: 2400  // QA PRS 초기값 설정
   });
 
   // 4. departments state 초기화
