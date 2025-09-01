@@ -431,7 +431,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           title: 'VSM',
           subtitle: 'Plant Manager',
           level: 0,
-          colorCategory: classifyPosition('Line', 'VSM', undefined, 'Plant Manager', 'VSM')
+          colorCategory: classifyPosition('Line', 'VSM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', undefined, 'Plant Manager', 'VSM')
         },
       });
 
@@ -513,7 +513,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           title: 'A.VSM',
           subtitle: vsmSubtitle,
           level: 1,
-          colorCategory: classifyPosition('Line', 'A.VSM', undefined, vsmSubtitle, 'A.VSM')
+          colorCategory: classifyPosition('Line', 'A.VSM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', undefined, vsmSubtitle, 'A.VSM')
         },
       });
       vsmXs.push(vsmX);
@@ -562,7 +562,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: 'GL',
               subtitle: processGroup.gl.subtitle,
               level: 2,
-              colorCategory: classifyPosition('Line', 'GL', undefined, processGroup.gl.subtitle, 'GL'),
+              colorCategory: classifyPosition('Line', 'GL' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', undefined, processGroup.gl.subtitle, 'GL'),
               // 병합된 노드에 대한 추가 정보
               isMerged: isStockfitAssembly,
               sourceProcesses: isStockfitAssembly && 'sourceProcesses' in processGroup ? processGroup.sourceProcesses : undefined
@@ -604,7 +604,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: tlNodeTitle,
               subtitle: tlNodeSubtitle,
               level: 3,
-              colorCategory: classifyPosition('Line', 'TL', undefined, tl.subtitle, tlNodeTitle || 'TL'),
+              colorCategory: classifyPosition('Line', 'TL' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', undefined, tl.subtitle, tlNodeTitle || 'TL'),
               // 병합된 노드에 대한 추가 정보
               isMerged: isStockfitAssemblyTL,
               processOrigin: isStockfitAssemblyTL ?
@@ -666,7 +666,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
                 title: nodeTitle,
                 subtitle: nodeSubtitle,
                 level: 4,
-                colorCategory: classifyPosition('Line', 'TM', undefined, tm.subtitle, nodeTitle || 'TM(MH)'),
+                colorCategory: classifyPosition('Line', 'TM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', undefined, tm.subtitle, nodeTitle || 'TM(MH)'),
                 // 병합된 노드에 대한 추가 정보
                 isMerged: isStockfitAssemblyTM,
                 processOrigin: isStockfitAssemblyTM ?
@@ -724,7 +724,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: 'GL',
               subtitle: glSubtitle,
               level: 2,
-              colorCategory: classifyPosition('No-sew', 'GL', 'No-sew', glSubtitle, 'GL')
+              colorCategory: classifyPosition('No-sew', 'GL' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', 'No-sew', glSubtitle, 'GL')
             }
           });
           // PM → GL: bend at mid between PM and LM using centerToLevelY
@@ -756,7 +756,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               subtitle: `Line ${lineIndex + 1} No-sew${shiftSuffix}`,
               manpower: manpower,
               level: 3,
-              colorCategory: classifyPosition('No-sew', 'TL', 'No-sew', `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 'TL')
+              colorCategory: classifyPosition('No-sew', 'TL' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', 'No-sew', `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 'TL')
             }
           });
 
@@ -787,7 +787,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: 'TM(MH)',
               subtitle: `Line ${lineIndex + 1} No-sew${shiftSuffix}`,
               level: 4,
-              colorCategory: classifyPosition('No-sew', 'TM', 'No-sew', `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 'TM(MH)')
+              colorCategory: classifyPosition('No-sew', 'TM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', 'No-sew', `Line ${lineIndex + 1} No-sew${shiftSuffix}`, 'TM(MH)')
             }
           });
           edges.push({ id: `edge-${tlId}-${tmId}`, source: tlId, target: tmId, type: 'smoothstep' });
@@ -822,7 +822,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               subtitle: `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`,
               manpower: manpower,
               level: 3,
-              colorCategory: classifyPosition('HF Welding', 'TL', 'HF Welding', `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`, 'TL')
+              colorCategory: classifyPosition('HF Welding', 'TL' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', 'HF Welding', `Line ${lineIndex + 1} HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'}`, 'TL')
             }
           });
 
@@ -851,7 +851,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               title: 'TM(MH)',
               subtitle: `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`,
               level: 4,
-              colorCategory: classifyPosition('HF Welding', 'TM', 'HF Welding', `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`, 'TM(MH)')
+              colorCategory: classifyPosition('HF Welding', 'TM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT', 'HF Welding', `HF Welding${hfCols === 1 ? '' : colIdx === 0 ? ' A' : ' B'} ${g + 1}`, 'TM(MH)')
             }
           });
 

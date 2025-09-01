@@ -10,7 +10,7 @@
 export interface Position {
   id: string;
   department: string;
-  level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT';
+  level: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT';
   title: string;
   subtitle?: string;
   processType?: string;
@@ -78,13 +78,13 @@ export class ClassificationEngine {
             {
               field: 'level',
               operator: 'equals',
-              value: 'PM',
+              value: 'VSM',
               classification: 'OH'
             },
             {
               field: 'level',
               operator: 'equals',
-              value: 'LM',
+              value: 'A.VSM',
               classification: 'OH'
             }
           ]
@@ -180,10 +180,10 @@ export class ClassificationEngine {
 
       // Level-based override rules (highest priority)
       levelRules: {
-        'PM': {
+        'VSM': {
           defaultClassification: 'OH'
         },
-        'LM': {
+        'A.VSM': {
           defaultClassification: 'OH'
         }
       },
@@ -277,7 +277,7 @@ export class ClassificationEngine {
    */
   public classifyPosition(
     department: string,
-    level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT',
+    level: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT',
     processType?: string,
     subtitle?: string,
     title?: string
@@ -492,7 +492,7 @@ export class ClassificationEngine {
    */
   private getFallbackClassification(
     department?: string,
-    level?: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT',
+    level?: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT',
     processType?: string,
     subtitle?: string,
     title?: string
@@ -500,7 +500,7 @@ export class ClassificationEngine {
     try {
       // Level-based fallback (most reliable)
       if (level) {
-        if (level === 'PM' || level === 'LM') {
+        if (level === 'VSM' || level === 'A.VSM') {
           return 'OH';
         }
       }
@@ -758,7 +758,7 @@ export const normalizeDepartmentName = (department: string): string => {
 // Export utility functions
 export const classifyPosition = (
   department: string,
-  level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT',
+  level: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT',
   processType?: string,
   subtitle?: string,
   title?: string

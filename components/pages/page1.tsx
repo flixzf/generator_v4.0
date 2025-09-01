@@ -104,7 +104,7 @@ const Page1: React.FC = () => {
     const finalDepartment = additionalData?.department || department || 'Line';
     
     // 레벨을 문자열로 변환
-    const levelMap: Record<number, 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT'> = {
+    const levelMap: Record<number, 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT'> = {
       0: 'VSM',
       1: 'A.VSM',
       2: 'GL',
