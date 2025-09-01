@@ -426,7 +426,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
           nodes.push({
         id: pmId,
         type: 'position',
-        position: { x: pmX, y: getHierarchyY('PM') },
+        position: { x: pmX, y: getHierarchyY('VSM') },
         data: {
           title: 'VSM',
           subtitle: 'Plant Manager',
@@ -508,7 +508,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       nodes.push({
         id: vsmId,
         type: 'position',
-        position: { x: vsmX, y: getHierarchyY('LM') },
+        position: { x: vsmX, y: getHierarchyY('A_VSM') },
         data: {
           title: 'A.VSM',
           subtitle: vsmSubtitle,
@@ -519,7 +519,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       vsmXs.push(vsmX);
 
       // PM → LM: LM 레벨 Y좌표에서 꺾임 (다른 PM 연결과 일관성 확보)
-      edges.push({ id: `edge-${pmId}-${vsmId}`, source: pmId, target: vsmId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
+      edges.push({ id: `edge-${pmId}-${vsmId}`, source: pmId, target: vsmId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('A_VSM') } });
     }
 
     // PM X를 직하단(LM)들의 X 평균으로 재정렬
@@ -690,7 +690,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
     // Page2 DEPT_GUTTER를 참조하여 간격 축소
     const separatedStartX = cumulativeX + 100; // 기존 160px → 100px
 
-    const vsmY = getHierarchyY('LM');
+    const vsmY = getHierarchyY('A_VSM');
     const glY = getHierarchyY('GL');
     const tlStartY = getHierarchyY('TL');
     const globalTMStartY = getHierarchyY('TM_BASE') + (globalMaxTLCount * 80) + 40;
@@ -728,7 +728,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             }
           });
           // PM → GL: bend at mid between PM and LM using centerToLevelY
-          edges.push({ id: `edge-${topConnectionNodeId}-${glId}`, source: topConnectionNodeId, target: glId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
+          edges.push({ id: `edge-${topConnectionNodeId}-${glId}`, source: topConnectionNodeId, target: glId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('A_VSM') } });
         }
       });
 
@@ -766,7 +766,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
             const sourceId = targetGLId || topConnectionNodeId;
             if (sourceId === topConnectionNodeId) {
               // PM → TL: bend at mid between PM and LM using centerToLevelY
-              edges.push({ id: `edge-${sourceId}-${tlId}`, source: sourceId, target: tlId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
+              edges.push({ id: `edge-${sourceId}-${tlId}`, source: sourceId, target: tlId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('A_VSM') } });
             } else {
               edges.push({ id: `edge-${sourceId}-${tlId}`, source: sourceId, target: tlId, type: 'smoothstep' });
             }
@@ -828,7 +828,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
             if (i === 0) {
             // PM → TL 첫 연결: bend at mid between PM and LM using centerToLevelY
-            edges.push({ id: `edge-${topConnectionNodeId}-${tlId}`, source: topConnectionNodeId, target: tlId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('LM') } });
+            edges.push({ id: `edge-${topConnectionNodeId}-${tlId}`, source: topConnectionNodeId, target: tlId, type: 'customCenterY', data: { centerToLevelY: getHierarchyY('A_VSM') } });
             colTopTlIds[colIdx] = tlId;
           } else {
             const aboveTlId = nodes.find(n => n.position.x === xPos && n.position.y === tlStartY + (i - 1) * 80)?.id;

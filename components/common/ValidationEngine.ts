@@ -73,7 +73,7 @@ export interface PositionValidationResult {
 export interface CrossPagePosition {
   id: string;
   department: string;
-  level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT';
+  level: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT';
   title?: string;
   subtitle?: string;
   processType?: string;

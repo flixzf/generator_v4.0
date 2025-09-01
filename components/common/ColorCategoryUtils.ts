@@ -12,8 +12,8 @@ export type ColorCategory = 'direct' | 'indirect' | 'OH';
  * This replaces all the duplicate getColorCategory functions
  */
 export function getColorCategory(
-  deptTitle: string | string[], 
-  position: 'GL' | 'TL' | 'TM' | 'PM' | 'LM', 
+  deptTitle: string | string[],
+  position: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT',
   subtitle?: string
 ): ColorCategory {
   const deptName = Array.isArray(deptTitle) ? deptTitle[0] : deptTitle;

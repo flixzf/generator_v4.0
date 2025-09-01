@@ -24,16 +24,16 @@ export function calculateDeptWidth(dept: DeptLike): number {
 
 // ===== 공통 계층 Y 좌표 정의 =====
 export const HIERARCHY_Y_POSITIONS = {
-  PM: 0,                           // PM 레벨
-  LM: LEVEL_HEIGHT,               // LM 레벨 (120px)
+  VSM: 0,                           // VSM 레벨
+  A_VSM: LEVEL_HEIGHT,             // A.VSM 레벨 (120px)
   GL: LEVEL_HEIGHT * 2,           // GL 레벨 (240px)
   TL: LEVEL_HEIGHT * 3,           // TL 레벨 (360px)
   TM_BASE: LEVEL_HEIGHT * 4,      // TM 시작 레벨 (480px)
-  DEPT: 0,                        // DEPT는 PM과 같은 레벨
+  DEPT: 0,                        // DEPT는 VSM과 같은 레벨
 } as const;
 
 // 계층별 Y 좌표 가져오기 함수
-export function getHierarchyY(level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM_BASE' | 'DEPT'): number {
+export function getHierarchyY(level: 'VSM' | 'A_VSM' | 'GL' | 'TL' | 'TM_BASE' | 'DEPT'): number {
   return HIERARCHY_Y_POSITIONS[level];
 }
 
@@ -61,7 +61,7 @@ export function getConnectionType(sourceLevel: keyof typeof HIERARCHY_Y_POSITION
 
 // 레벨 인덱스 가져오기
 function getLevelIndex(level: keyof typeof HIERARCHY_Y_POSITIONS): number {
-  const levelOrder = ['PM', 'DEPT', 'LM', 'GL', 'TL', 'TM_BASE'] as const;
+  const levelOrder = ['VSM', 'DEPT', 'A_VSM', 'GL', 'TL', 'TM_BASE'] as const;
   const index = levelOrder.indexOf(level);
   return index === -1 ? 0 : index;
 }

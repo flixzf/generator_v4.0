@@ -96,8 +96,8 @@ export const MGLConnector: React.FC<{ lineCount: number }> = ({ lineCount }) => 
   const [vsmPositions, setVsmPositions] = useState<number[]>([]);
   const connectorRef = useRef<HTMLDivElement>(null);
 
-  // LM 박스들의 위치를 계산하는 함수
-  const calculateLMPositions = () => {
+  // A.VSM 박스들의 위치를 계산하는 함수
+  const calculateAVSMPositions = () => {
     const vsmElements = document.querySelectorAll('[data-vsm-box="true"]');
     if (!connectorRef.current || vsmElements.length === 0) return;
 
@@ -109,9 +109,9 @@ export const MGLConnector: React.FC<{ lineCount: number }> = ({ lineCount }) => 
     setVsmPositions(positions);
   };
 
-  // LM 박스들이 렌더링된 후 위치 계산
+  // A.VSM 박스들이 렌더링된 후 위치 계산
   useEffect(() => {
-    const timer = setTimeout(calculateLMPositions, 100);
+    const timer = setTimeout(calculateAVSMPositions, 100);
     return () => clearTimeout(timer);
   }, [lineCount]);
 
@@ -211,7 +211,7 @@ export const ConnectingLines: React.FC<{
   );
 };
 
-export interface LMGroupProps {
+export interface AVSMGroupProps {
   vsm: { subtitle: string };
   config: Config;
   spacingConfig: {
@@ -231,7 +231,7 @@ export interface LMGroupProps {
   showSeparatedProcesses?: boolean;
 }
 
-export const LMGroup: React.FC<LMGroupProps> = ({ 
+export const AVSMGroup: React.FC<AVSMGroupProps> = ({ 
   vsm, 
   config, 
   spacingConfig, 
@@ -310,9 +310,9 @@ export const LMGroup: React.FC<LMGroupProps> = ({
     <div className="flex flex-row items-start mx-8 gap-8">
       {/* 메인 공정 영역 (왼쪽) */}
       <div className="flex flex-col items-center">
-        {/* LM 박스와 모델 선택 드롭다운 */}
+        {/* A.VSM 박스와 모델 선택 드롭다운 */}
         <div className="flex flex-col items-center">
-          {createInteractiveBox("LM", vsm.subtitle, 1, "OH", {
+          {createInteractiveBox("A.VSM", vsm.subtitle, 1, "OH", {
             department: `Line ${(lineIndex || 0) + 1} 관리`,
             manpower: 1, // LM은 항상 1명으로 고정
             responsibilities: ["라인 생산 관리", "품질 관리", "일정 관리"],
@@ -345,7 +345,7 @@ export const LMGroup: React.FC<LMGroupProps> = ({
           )}
         </div>
         
-      {/* LM과 GL 사이 간격 */}
+      {/* A.VSM과 GL 사이 간격 */}
       <div style={{ height: `${spacingConfig.verticalHierarchy}px` }} />
       <div className="flex flex-row">
           {mainProcesses.map((group, idx) => {
@@ -610,7 +610,7 @@ export const OrganizationTree: React.FC<{ page?: string }> = ({ page = "1" }) =>
     return calculatePositionCount(position, config, getProcessGroupsFromReactFlow);
   };
 
-  const totalPeople = ["MGL", "LM", "GL", "TL", "TM"].reduce(
+  const totalPeople = ["MGL", "A.VSM", "GL", "TL", "TM"].reduce(
     (acc, pos) => acc + calculatePositionCountLocal(pos),
     0
   );
@@ -727,9 +727,9 @@ export const OrganizationTree: React.FC<{ page?: string }> = ({ page = "1" }) =>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-semibold">LM:</span>
+              <span className="font-semibold">A.VSM:</span>
               <div className="bg-gray-100 px-3 py-0.5 rounded">
-                {calculatePositionCountLocal("LM")}
+                {calculatePositionCountLocal("A.VSM")}
               </div>
             </div>
             <div className="flex items-center justify-between">

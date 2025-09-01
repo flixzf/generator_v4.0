@@ -56,7 +56,7 @@ export const ReactFlowOrgChart: React.FC = () => {
         id: `vsm-${lineIndex}`,
         type: 'position',
         position: { x: lineX + 300, y: levelHeight },
-        data: { title: 'LM', subtitle: `Line ${lineIndex + 1}`, level: 1, colorCategory: 'indirect' },
+        data: { title: 'A.VSM', subtitle: `Line ${lineIndex + 1}`, level: 1, colorCategory: 'indirect' },
       });
 
       // 각 공정 그룹별로 GL, TL, TM 생성

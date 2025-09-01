@@ -27,7 +27,7 @@ describe('Validation Reporting and Error Handling', () => {
       const position = {
         id: 'test-pos',
         department: 'Line',
-        level: 'PM' as const,
+        level: 'VSM' as const,
         title: 'Line PM',
         source: 'page1'
       };
@@ -44,7 +44,7 @@ describe('Validation Reporting and Error Handling', () => {
       const inconsistency = {
         positionId: 'test-pos',
         department: 'Line',
-        level: 'PM',
+        level: 'VSM',
         expectedClassification: 'OH' as const,
         actualClassification: 'direct' as const,
         pages: ['page1', 'page2'],
@@ -74,7 +74,7 @@ describe('Validation Reporting and Error Handling', () => {
       logger.logClassificationFailure({
         id: 'test1',
         department: 'Line',
-        level: 'PM',
+        level: 'VSM',
         title: 'Test',
         source: 'page1'
       }, 'Error 1');
@@ -125,7 +125,7 @@ describe('Validation Reporting and Error Handling', () => {
         {
           id: 'valid',
           department: 'Line',
-          level: 'PM' as const,
+          level: 'VSM' as const,
           title: 'Valid Position',
           source: 'page1' as const
         },
@@ -180,7 +180,7 @@ describe('Validation Reporting and Error Handling', () => {
         {
           id: 'test',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1'
         }
       ];
@@ -204,7 +204,7 @@ describe('Validation Reporting and Error Handling', () => {
         {
           id: 'line-pm',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           title: 'Line PM',
           source: 'page1'
         }
@@ -237,7 +237,7 @@ describe('Validation Reporting and Error Handling', () => {
         {
           id: 'line-pm',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page4-indirect'
         }
       ];
@@ -262,7 +262,7 @@ describe('Validation Reporting and Error Handling', () => {
       const position: CrossPagePosition = {
         id: 'test-pos',
         department: 'Line',
-        level: 'PM',
+        level: 'VSM',
         title: 'Line PM',
         source: 'page1'
       };

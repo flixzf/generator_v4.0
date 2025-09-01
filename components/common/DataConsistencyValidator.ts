@@ -943,8 +943,8 @@ class DefaultMockDataGenerator implements MockDataGenerator {
     
     // Base positions that always exist
     positions.push(
-      { id: 'line-pm', department: 'Line', level: 'PM', title: 'Line PM', source: 'page1' },
-      { id: 'line-lm', department: 'Line', level: 'LM', title: 'Line LM', source: 'page1' }
+      { id: 'line-vsm', department: 'Line', level: 'VSM', title: 'Line VSM', source: 'page1' },
+      { id: 'line-avsm', department: 'Line', level: 'A.VSM', title: 'Line A.VSM', source: 'page1' }
     );
 
     // Add positions based on line count

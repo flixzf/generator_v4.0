@@ -37,7 +37,7 @@ describe('ValidationEngine Integration Tests', () => {
         {
           id: 'pm-1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           title: 'PM',
           subtitle: 'Plant Manager',
           source: 'page1',
@@ -47,7 +47,7 @@ describe('ValidationEngine Integration Tests', () => {
         {
           id: 'lm-1',
           department: 'Line',
-          level: 'LM',
+          level: 'A.VSM',
           title: 'LM',
           subtitle: 'Line Manager',
           source: 'page1',
@@ -272,7 +272,7 @@ describe('ValidationEngine Integration Tests', () => {
         {
           id: 'line-pm',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'detailed'
         },
         {
@@ -324,7 +324,7 @@ describe('ValidationEngine Integration Tests', () => {
         {
           id: 'agg-line-pm',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page4-indirect'
         },
         {
@@ -483,7 +483,7 @@ describe('ValidationEngine Integration Tests', () => {
         {
           id: 'p1-pm',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1',
           classification: 'OH'
         },
@@ -553,7 +553,7 @@ describe('ValidationEngine Integration Tests', () => {
         {
           id: 'line-pm',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'test'
         },
         {

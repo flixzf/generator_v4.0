@@ -30,8 +30,8 @@ export interface DepartmentData {
   title?: string[];
   tl?: string[];
   tm?: string[][];
-  PM: number;
-  LM: number;
+  VSM: number;
+  A_VSM: number;
   GL: number;
   TL: number;
   TM: number;
@@ -90,25 +90,25 @@ export function extractPositionsFromDepartments(
   const positions: CrossPagePosition[] = [];
 
   for (const [deptName, dept] of Object.entries(departments)) {
-    // Add PM positions
-    for (let i = 0; i < dept.PM; i++) {
-      if (!includeFilter || includeFilter(deptName, 'PM')) {
+    // Add VSM positions
+    for (let i = 0; i < dept.VSM; i++) {
+      if (!includeFilter || includeFilter(deptName, 'VSM')) {
         positions.push({
-          id: `${deptName}-PM-${i}`,
+          id: `${deptName}-VSM-${i}`,
           department: deptName,
-          level: 'PM',
+          level: 'VSM',
           source: pageName
         });
       }
     }
 
-    // Add LM positions
-    for (let i = 0; i < dept.LM; i++) {
-      if (!includeFilter || includeFilter(deptName, 'LM')) {
+    // Add A.VSM positions
+    for (let i = 0; i < dept.A_VSM; i++) {
+      if (!includeFilter || includeFilter(deptName, 'A.VSM')) {
         positions.push({
-          id: `${deptName}-LM-${i}`,
+          id: `${deptName}-A.VSM-${i}`,
           department: deptName,
-          level: 'LM',
+          level: 'A.VSM',
           source: pageName
         });
       }
@@ -312,10 +312,10 @@ function extractDepartmentFromSubtitle(subtitle?: string): string {
   return 'Unknown';
 }
 
-function mapLevelNumberToString(level?: number): 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT' {
+function mapLevelNumberToString(level?: number): 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT' {
   switch (level) {
-    case 0: return 'PM';
-    case 1: return 'LM';
+    case 0: return 'VSM';
+    case 1: return 'A.VSM';
     case 2: return 'GL';
     case 3: return 'TL';
     case 4: return 'TM';

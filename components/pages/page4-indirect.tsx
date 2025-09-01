@@ -7,7 +7,7 @@ import { Node } from 'reactflow';
 type NodeData = {
   colorCategory: 'OH' | 'indirect' | 'direct' | 'blank';
   department: string;
-  level: 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT';
+  level: 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT';
   isDeptName?: boolean;
 };
 
@@ -42,8 +42,8 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
   let idCounter = 1;
   const getNextId = () => `p1-node-${idCounter++}`;
   
-  // PM 노드
-  nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'PM', colorCategory: classifyPosition('Line', 'PM') } });
+  // VSM 노드
+  nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'VSM', colorCategory: classifyPosition('Line', 'VSM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT') } });
   
   // 분리된 공정을 가진 라인들 찾기
   const linesWithNosew: number[] = [];
@@ -54,8 +54,8 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const selectedModel = models[modelIndex];
     if (!selectedModel) return;
 
-    // LM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'LM', colorCategory: classifyPosition('Line', 'LM') } });
+    // A.VSM 노드
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Line', level: 'A.VSM', colorCategory: classifyPosition('Line', 'A.VSM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT') } });
     
     // 메인 공정 노드들
     const { mainProcesses } = getProcessGroups_p1(config, selectedModel, lineIndex);
@@ -86,7 +86,7 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const shiftCols = config.shiftsCount || 1;
     
     // 빈 LM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: classifyPosition('Separated', 'LM') } });
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'A.VSM', colorCategory: classifyPosition('Separated', 'A.VSM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT') } });
     
     // GL 노드들
     for (let i = 0; i < shiftCols; i++) {
@@ -106,7 +106,7 @@ const generateNodesForPage1 = (config: any, models: any[], effectiveLineModelSel
     const hfCols = config.shiftsCount || 1;
     
     // 빈 LM 노드
-    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'LM', colorCategory: classifyPosition('Separated', 'LM') } });
+    nodes.push({ id: getNextId(), type: 'position', position: { x: 0, y: 0 }, data: { department: 'Separated', level: 'A.VSM', colorCategory: classifyPosition('Separated', 'A.VSM' as 'VSM' | 'A.VSM' | 'GL' | 'TL' | 'TM' | 'DEPT') } });
     
     // TL 노드들 (각 라인별로)
     linesWithHfWelding.forEach(() => {
@@ -291,7 +291,7 @@ const generateNodesForPage3 = (config: any): CustomNode[] => {
 // =================================================================
 
 const SummaryTable = ({ title, data, laborType }: { title: string; data: Summary; laborType: string }) => {
-  const levels = ["PM", "LM", "GL", "TL", "TM"];
+  const levels = ["VSM", "A.VSM", "GL", "TL", "TM"];
   
   // Plant와 Supporting Team 부서 분류
   const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production", "FG WH"];
@@ -377,7 +377,7 @@ export default function Page4Indirect() {
 
     const indirectSummary: Summary = {};
     const overheadSummary: Summary = {};
-    const levels = ["PM", "LM", "GL", "TL", "TM", "DEPT"];
+    const levels = ["VSM", "A.VSM", "GL", "TL", "TM", "DEPT"];
     
     // Plant와 Supporting Team 부서 분류
     const plantDepts = ["Line", "Plant", "Admin", "Small Tooling", "Raw Material", "Sub Material", "ACC Market", "P&L Market", "Bottom Market", "Plant Production", "FG WH"];

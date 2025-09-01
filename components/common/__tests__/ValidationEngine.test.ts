@@ -21,7 +21,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1',
           classification: 'OH'
         }
@@ -51,7 +51,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1'
         }
       ];
@@ -71,7 +71,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1',
           classification: 'OH'
         }
@@ -81,7 +81,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos2',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page2',
           classification: 'OH'
         }
@@ -139,7 +139,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1'
           // No classification provided
         }
@@ -157,7 +157,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1',
           classification: 'OH'
         },
@@ -194,7 +194,7 @@ describe('ValidationEngine', () => {
       const position: CrossPagePosition = {
         id: 'pos1',
         department: 'Line',
-        level: 'PM',
+        level: 'VSM',
         source: 'page1',
         classification: 'OH'
       };
@@ -209,7 +209,7 @@ describe('ValidationEngine', () => {
       const position: CrossPagePosition = {
         id: 'pos1',
         department: '',
-        level: 'PM',
+        level: 'VSM',
         source: 'page1'
       };
 
@@ -222,7 +222,7 @@ describe('ValidationEngine', () => {
       const position: CrossPagePosition = {
         id: 'pos1',
         department: 'Line',
-        level: 'PM',
+        level: 'VSM',
         source: 'page1',
         classification: 'direct' // Should be OH
       };
@@ -236,7 +236,7 @@ describe('ValidationEngine', () => {
       const position: CrossPagePosition = {
         id: 'pos1',
         department: 'Unknown Department',
-        level: 'PM',
+        level: 'VSM',
         source: 'page1'
       };
 
@@ -266,7 +266,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos3',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'detailed',
           classification: 'OH'
         }
@@ -294,7 +294,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos3',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'indirect-page',
           classification: 'OH'
         }
@@ -423,7 +423,7 @@ describe('ValidationEngine', () => {
         {
           id: 'pos1',
           department: 'Line',
-          level: 'PM',
+          level: 'VSM',
           source: 'page1',
           classification: 'OH'
         },

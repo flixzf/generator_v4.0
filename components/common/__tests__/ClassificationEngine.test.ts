@@ -22,24 +22,24 @@ describe('ClassificationEngine', () => {
   });
 
   describe('Level-based overrides (highest priority)', () => {
-    test('PM level should always be OH regardless of department', () => {
-      expect(classifyPosition('Line', 'PM')).toBe('OH');
-      expect(classifyPosition('Quality', 'PM')).toBe('OH');
-      expect(classifyPosition('CE', 'PM')).toBe('OH');
-      expect(classifyPosition('Admin', 'PM')).toBe('OH');
+    test('VSM level should always be OH regardless of department', () => {
+      expect(classifyPosition('Line', 'VSM')).toBe('OH');
+      expect(classifyPosition('Quality', 'VSM')).toBe('OH');
+      expect(classifyPosition('CE', 'VSM')).toBe('OH');
+      expect(classifyPosition('Admin', 'VSM')).toBe('OH');
     });
 
-    test('LM level should always be OH regardless of department', () => {
-      expect(classifyPosition('Line', 'LM')).toBe('OH');
-      expect(classifyPosition('Quality', 'LM')).toBe('OH');
-      expect(classifyPosition('CE', 'LM')).toBe('OH');
-      expect(classifyPosition('Admin', 'LM')).toBe('OH');
+    test('A.VSM level should always be OH regardless of department', () => {
+      expect(classifyPosition('Line', 'A.VSM')).toBe('OH');
+      expect(classifyPosition('Quality', 'A.VSM')).toBe('OH');
+      expect(classifyPosition('CE', 'A.VSM')).toBe('OH');
+      expect(classifyPosition('Admin', 'A.VSM')).toBe('OH');
     });
   });
 
   describe('Department-specific classification rules', () => {
     test('Line department classifications', () => {
-      // PM/LM are OH (covered by level rules)
+      // VSM/A.VSM are OH (covered by level rules)
       expect(classifyPosition('Line', 'GL')).toBe('indirect');
       expect(classifyPosition('Line', 'TL')).toBe('indirect');
       expect(classifyPosition('Line', 'TM')).toBe('indirect');
@@ -280,7 +280,7 @@ describe('ClassificationEngine', () => {
       const position: Position = {
         id: 'test-position',
         department: 'Line',
-        level: 'PM',
+        level: 'VSM',
         title: 'Test Position',
         classification: 'direct', // Should be OH
         source: 'page1'
