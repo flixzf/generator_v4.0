@@ -16,8 +16,8 @@ import {
 console.log('=== Basic Classification Examples ===');
 
 // Level-based classifications (highest priority)
-console.log('PM Level (always OH):', classifyPosition('Line', 'PM')); // OH
-console.log('LM Level (always OH):', classifyPosition('Quality', 'LM')); // OH
+console.log('VSM Level (always OH):', classifyPosition('Line', 'VSM')); // OH
+console.log('A.VSM Level (always OH):', classifyPosition('Quality', 'A.VSM')); // OH
 
 // Department-specific classifications
 console.log('Line TM:', classifyPosition('Line', 'TM')); // indirect
@@ -97,17 +97,17 @@ console.log('\n=== Page Integration Example ===');
 // Simulate positions from different pages
 const page1Positions: Position[] = [
   {
-    id: 'line-pm-1',
+    id: 'line-vsm-1',
     department: 'Line',
-    level: 'PM',
-    title: 'Line PM',
+    level: 'VSM',
+    title: 'Line VSM',
     source: 'page1'
   },
   {
-    id: 'line-gl-1',
+    id: 'line-avsm-1',
     department: 'Line',
-    level: 'GL',
-    title: 'Line GL Cutting',
+    level: 'A.VSM',
+    title: 'Line A.VSM',
     source: 'page1'
   }
 ];
