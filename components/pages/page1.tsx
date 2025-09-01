@@ -105,8 +105,8 @@ const Page1: React.FC = () => {
     
     // 레벨을 문자열로 변환
     const levelMap: Record<number, 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT'> = {
-      0: 'PM',
-      1: 'LM', 
+      0: 'VSM',
+      1: 'A.VSM',
       2: 'GL',
       3: 'TL',
       4: 'TM',
@@ -429,8 +429,8 @@ const Page1: React.FC = () => {
     if (position === "PM") return 1;
 
     if (position === "LM") {
-      // LM은 2개 라인당 1명으로 계산 (ReactFlowPage1과 일치)
-      return Math.ceil(config.lineCount / 2);
+      // LM은 1개 라인당 1명으로 계산
+      return config.lineCount;
     }
 
     // 모델 기반 인원 계산

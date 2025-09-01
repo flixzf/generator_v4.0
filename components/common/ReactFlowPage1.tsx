@@ -428,10 +428,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         type: 'position',
         position: { x: pmX, y: getHierarchyY('PM') },
         data: {
-          title: 'PM',
+          title: 'VSM',
           subtitle: 'Plant Manager',
           level: 0,
-          colorCategory: classifyPosition('Line', 'PM', undefined, 'Plant Manager', 'PM')
+          colorCategory: classifyPosition('Line', 'VSM', undefined, 'Plant Manager', 'VSM')
         },
       });
 
@@ -465,16 +465,16 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
 
     globalMaxTLCount = Math.max(globalMaxTLCount, linesWithNosew.length, linesWithHfWelding.length);
 
-    // ===== 4. LM 노드 생성 (2개 라인당 1명) =====
-    const vsmCount = Math.ceil(config.lineCount / 2);
+    // ===== 4. LM 노드 생성 (1개 라인당 1명) =====
+    const vsmCount = config.lineCount;
     const vsmIds: string[] = [];
     const vsmXs: number[] = [];
     const vsmChildGlXs: Record<string, number[]> = {};
     let pmChildXs: number[] = [];
 
     for (let vsmIndex = 0; vsmIndex < vsmCount; vsmIndex++) {
-      const startLineIndex = vsmIndex * 2;
-      const endLineIndex = Math.min(startLineIndex + 1, config.lineCount - 1);
+      const startLineIndex = vsmIndex;
+      const endLineIndex = vsmIndex;
 
       // LM이 관리하는 라인들의 모델 정보 수집
       const managedLines = [];
@@ -510,10 +510,10 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
         type: 'position',
         position: { x: vsmX, y: getHierarchyY('LM') },
         data: {
-          title: 'LM',
+          title: 'A.VSM',
           subtitle: vsmSubtitle,
           level: 1,
-          colorCategory: classifyPosition('Line', 'LM', undefined, vsmSubtitle, 'LM')
+          colorCategory: classifyPosition('Line', 'A.VSM', undefined, vsmSubtitle, 'A.VSM')
         },
       });
       vsmXs.push(vsmX);
@@ -538,8 +538,8 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
       const glStartX = lineX + (linePadding / 2);
       const glY = getHierarchyY('GL');
 
-      // 해당 라인을 관리하는 LM 찾기
-      const vsmIndex = Math.floor(lineIndex / 2);
+      // 해당 라인을 관리하는 LM 찾기 (1라인당 1 A.VSM이므로 lineIndex 사용)
+      const vsmIndex = lineIndex;
       const managingVsmId = vsmIds[vsmIndex];
 
       const tmStartY = getHierarchyY('TM_BASE') + (globalMaxTLCount * 80) + 40;
@@ -568,7 +568,7 @@ export const ReactFlowPage1: React.FC<ReactFlowPage1Props> = ({
               sourceProcesses: isStockfitAssembly && 'sourceProcesses' in processGroup ? processGroup.sourceProcesses : undefined
             },
           });
-          // LM 직하단 자식 목록에 GL X 추가
+          // A.VSM 직하단 자식 목록에 GL X 추가
           const managingVsm = vsmIds[vsmIndex];
           if (managingVsm) vsmChildGlXs[managingVsm].push(glX);
 

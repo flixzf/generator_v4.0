@@ -1,8 +1,8 @@
-# 조직도 생성기 (Organization Chart Generator)
+# 조직도 생성기 (Organization Chart Generator) - Value Stream 기반
 
-> **빌드 상태**: TypeScript 타입 에러 수정 완료 (2024-01-XX)
+> **빌드 상태**: Value Stream 기반 직책 체계(VSM/A.VSM) 적용 완료 (2025-01-XX)
 
-이 프로젝트는 **제조/생산 조직의 인원 구조를 시각화하고, 다양한 기준(라인, 플랜트, 지원부서 등)으로 인원 배분을 분석**하는 웹 애플리케이션입니다. Next.js(React) 기반으로 개발되었으며, ReactFlow를 활용해 조직도를 직관적으로 표현합니다.
+이 프로젝트는 **제조/생산 조직의 인원 구조를 시각화하고, 다양한 기준(라인, 플랜트, 지원부서 등)으로 인원 배분을 분석**하는 웹 애플리케이션입니다. Value Stream 기반의 계층 구조(VSM-A.VSM-GL-TL-TM)를 지원하며, Next.js(React) 기반으로 개발되었으며, ReactFlow를 활용해 조직도를 직관적으로 표현합니다.
 
 ---
 
@@ -12,8 +12,10 @@
   생산 라인, 플랜트, 지원부서 등 다양한 관점에서 조직도를 그래픽으로 확인할 수 있습니다.
 - **인원 배분/집계**  
   Direct/Indirect/OH(Overhead) 구분에 따라 인원 집계가 가능합니다.
-- **모델 기반 인원 산정**  
+- **모델 기반 인원 산정**
   CSV 등 외부 데이터 기반으로 모델별 공정/인원 정보를 불러와 분석할 수 있습니다.
+- **계층별 직책 관리**
+  VSM(Value Stream Manager), A.VSM(Assistant Value Stream Manager), GL, TL, TM 등 역할 기반 인원 구조 관리.
 - **다양한 뷰 제공**  
   Line, Plant, Support Department, Aggregation(Direct/Indirect+OH), Model-based 등 여러 페이지로 조직도를 탐색할 수 있습니다.
 
@@ -103,7 +105,7 @@ generator_v4.0/
 - `OrgChartProvider`: 전체 앱에 데이터/상태 제공.
 - `useOrgChart`: 조직도 데이터, 부서/공정/모델 정보, 인원 집계 등 제공.
 - 부서/공정/모델별 데이터 구조, 인원 계산 함수 등 포함.
-- **주요 직책 구조**: PM(Project Manager), LM(Line Manager), GL(Group Leader), TL(Team Leader), TM(Team Member) 등의 계층 구조로 조직.
+- **주요 직책 구조**: VSM(Value Stream Manager), A.VSM(Assistant Value Stream Manager), GL(Group Leader), TL(Team Leader), TM(Team Member) 등의 계층 구조로 조직. A.VSM은 1라인당 1명씩 배치되며 각 라인의 운영을 담당.
 
 ### 5. `reference/`
 - 실제 조직도, 인원 분석 예시 데이터(CSV, 이미지 등).
@@ -114,8 +116,8 @@ generator_v4.0/
 
 - **getProcessGroups(config, selectedModel?)**  
   공정/모델 데이터 기반으로 GL, TL, TM 등 계층별 그룹을 생성.
-- **calculatePositionCount(position)**  
-  각 직책(PM, LM, GL, TL, TM)별 인원 수 계산.
+- **calculatePositionCount(position)**
+  각 직책(VSM, A.VSM, GL, TL, TM)별 인원 수 계산. A.VSM은 1라인당 1명 배치.
 - **useInteractivePositionBox()**  
   박스 선택/하이라이트/편집 등 상호작용 상태 관리.
 - **generateNodes(), generateEdges()**  
