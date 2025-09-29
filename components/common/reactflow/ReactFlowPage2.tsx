@@ -15,7 +15,6 @@ import { makeDoubleLines, makeSingleLines, getShippingTMCount } from '../utils';
 import { CustomPositionNode, nodeTypes, edgeTypes } from '../components';
 import { CustomCenterYEdge } from '../components';
 import { LAYOUT_CONFIG, calculateDeptWidth, DeptLayout, computeCategoryXs, computeTLXs, computeGLXs, computeDeptNameX, getYPosition, getHierarchyY, getTMY, calculateEntityPositions } from '../layout';
-import { calculateEntityPositionsWithBoundingBox } from '../layout-bounding-box';
 import { getDepartmentsForPage, DeptLike } from '../department-data';
 
 interface ReactFlowPage2Props {
@@ -344,10 +343,15 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     const levelHeight = LAYOUT_CONFIG.LEVEL_HEIGHT;
     const partLevelY = getHierarchyY('PART');
 
-    // 바운딩 박스 기반으로 부서 배치 계산 (균등한 간격)
-    const { positions: deptPositions } = calculateEntityPositionsWithBoundingBox(
-      departments as DeptLayout[],
-      150 // 부서간 균등 간격 150px
+    // 공통 함수를 사용하여 부서 배치 계산
+    const deptEntities = departments.map((dept: any) => ({
+      width: calculateDeptWidth(dept as any)
+    }));
+
+    const { positions: deptPositions } = calculateEntityPositions(
+      deptEntities,
+      undefined, // separatedGap 없음
+      150 // 부서간 간격 150px
     );
 
 

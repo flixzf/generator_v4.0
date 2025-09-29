@@ -14,7 +14,6 @@ import { getColorCategory } from '../theme';
 import { CustomPositionNode, nodeTypes, edgeTypes } from '../components';
 import { CustomCenterYEdge } from '../components';
 import { LAYOUT_CONFIG, calculateDeptWidth, computeCategoryXs, computeTLXs, computeGLXs, computeDeptNameX, getYPosition, getEdgeBendY, getHierarchyY, getTMY, createEdgeConfig, getUnifiedGLBendY, sequentialGLToTLMapping, calculateEntityPositions } from '../layout';
-import { calculateEntityPositionsWithBoundingBox } from '../layout-bounding-box';
 import { getDepartmentsForPage, DeptLike } from '../department-data';
 
 interface ReactFlowPage3Props {
@@ -152,10 +151,15 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
 
     const levelHeight = LAYOUT_CONFIG.LEVEL_HEIGHT;
 
-    // 바운딩 박스 기반으로 부서 배치 계산 (균등한 간격)
-    const { positions: deptPositions } = calculateEntityPositionsWithBoundingBox(
-      deps as any,
-      150 // 부서간 균등 간격 150px
+    // 공통 함수를 사용하여 부서 배치 계산
+    const deptEntities = deps.map((dept: any) => ({
+      width: calculateDeptWidth(dept as any)
+    }));
+
+    const { positions: deptPositions } = calculateEntityPositions(
+      deptEntities,
+      undefined, // separatedGap 없음
+      150 // 부서간 간격 150px
     );
 
 
