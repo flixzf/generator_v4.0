@@ -4,6 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
+vercel에 deploy할 파일임. deploy에 문제가 없도록 파일 구성할 것. 보통 아래와 같은 문제 발생.
+
+  1. 상대 경로 import 오류:
+    - ../theme → @/components/common/theme
+    - ../utils → @/components/common/utils
+    - ../components → @/components/common/components
+    - 등등 모든 상대 경로를 절대 경로로 변경
+  2. Node.js 버전 명시:
+    - .nvmrc 파일 생성 (Node 20 지정)
+    - package.json에 engines 필드 추가
+  3. 빌드 환경 호환성:
+    - TypeScript 경로 해석 문제 해결
+    - 배포 환경에서의 모듈 찾기 문제 해결
+
 ### Development
 - `npm run dev` - Start development server with Turbopack (faster builds)
 - `npm run build` - Build for production

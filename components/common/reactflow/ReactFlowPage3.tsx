@@ -39,9 +39,9 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
     };
 
     // Quality
-    const qaTLs = Array.from({ length: L }, (_, i) => `QA L${i + 1}`);
+    const qaTLs = Array.from({ length: L }, (_, i) => `QA Line ${i + 1}`);
     const qaTMGroups = qaTLs.map((_, idx) =>
-      Array.from({ length: qaTmPerLine(P) }, (_, j) => `QA L${idx + 1} TM-${j + 1}`)
+      Array.from({ length: qaTmPerLine(P) }, (_, j) => `QA Line ${idx + 1}-${j + 1}`)
     );
     // MA TM 총합 (2212221 반복)
     const maPattern = [2, 2, 1, 2, 2, 2, 1];
@@ -201,7 +201,7 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
         id: deptNameId,
         type: 'customPosition',
         position: { x: deptNameX - 70, y: getHierarchyY('DEPT') },
-        data: { title: 'DEPT', subtitle: dept.title[0], level: 0, colorCategory: 'OH', isDeptName: true },
+        data: { title: '', subtitle: dept.title[0], level: 'DEPT', colorCategory: 'OH', isDeptName: true },
       });
 
       // 통일된 연결선 규칙 적용

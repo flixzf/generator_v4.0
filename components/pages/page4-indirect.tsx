@@ -155,10 +155,9 @@ const generateNodesForPage2 = (config: any): CustomNode[] => {
         {
             title: "Bottom Market",
             hasGL: false,
-            tl: ["Bottom Market Incoming"],
+            tl: [],
             tm: [
-                ["Outsole", "Outsole", "Midsole", "Midsole"],
-                ["Bottom ACC"],
+                ["Outsole", "Outsole", "Midsole", "Midsole", "Bottom ACC"],
             ],
         },
         {

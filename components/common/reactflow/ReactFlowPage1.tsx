@@ -10,10 +10,10 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
-import { CustomPositionNode, nodeTypes, edgeTypes } from '../components';
-import { CustomCenterYEdge } from '../components';
-import { classifyPosition } from '../classification';
-import { LAYOUT_CONFIG, average, getYPosition, createGridXs, computeGLXs, computeTLXs, computeCategoryXs, computeDeptNameX, getHierarchyY, getTMY, sequentialGLToTLMapping, calculateEntityPositions, calculateLineWidth } from '../layout';
+import { CustomPositionNode, nodeTypes, edgeTypes } from '@/components/common/components';
+import { CustomCenterYEdge } from '@/components/common/components';
+import { classifyPosition } from '@/components/common/classification';
+import { LAYOUT_CONFIG, average, getYPosition, createGridXs, computeGLXs, computeTLXs, computeCategoryXs, computeDeptNameX, getHierarchyY, getTMY, sequentialGLToTLMapping, calculateEntityPositions, calculateLineWidth } from '@/components/common/layout';
 
 // getProcessGroups 함수 - 모델 데이터 기반 공정 분리 기능
 export function getProcessGroups(config: any, selectedModel?: any, lineIndex?: number, context: 'display' | 'calculation' = 'display') {

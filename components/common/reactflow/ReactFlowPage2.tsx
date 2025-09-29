@@ -83,32 +83,11 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
         tl: ["Small Tooling"],
         tm: (() => {
           const L = config.lineCount;
+          // Small Tooling TM: Line 1: 0개, Line 2: 1개, Line 3: 2개, ..., Line 8: 7개
+          // 공식: L - 1
+          const tmCount = Math.max(0, L - 1);
 
-          // Last+ Small Tooling: Line 1: 0개, Line 2: 1개, Line 3: 1개, Line 4: 2개, Line 5: 2개, Line 6: 3개, Line 7: 3개, Line 8: 4개
-          let lastSmallToolingCount = 0;
-          if (L >= 2) lastSmallToolingCount = 1;
-          if (L >= 4) lastSmallToolingCount = 2;
-          if (L >= 6) lastSmallToolingCount = 3;
-          if (L >= 8) lastSmallToolingCount = 4;
-
-          // Pallet: Line 1: 0개, Line 2: 1개, Line 3: 1개, Line 4: 1개, Line 5: 2개, Line 6: 2개, Line 7: 3개, Line 8: 3개
-          let palletTMCount = 0;
-          if (L >= 2) palletTMCount = 1;
-          if (L >= 5) palletTMCount = 2;
-          if (L >= 7) palletTMCount = 3;
-
-          // 모든 TM을 한 줄로 배치
-          const allTMs = [];
-
-          // Last+ Small Tooling TM들 추가
-          for (let i = 0; i < lastSmallToolingCount; i++) {
-            allTMs.push(`Last Control TM ${i + 1}`);
-          }
-
-          // Pallet TM들 추가
-          for (let i = 0; i < palletTMCount; i++) {
-            allTMs.push(`Pallet TM ${i + 1}`);
-          }
+          const allTMs = Array.from({ length: tmCount }, (_, i) => `Small Tooling ${i + 1}`);
 
           return [allTMs]; // 단일 컬럼으로 반환
         })(),
@@ -140,8 +119,8 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
           if (L >= 5) accMarketCount = 3;
           if (L >= 7) accMarketCount = 4;
 
-          // Bottom Market: Line 1: OS1+MS1 (2), Line 2: OS1+MS2 (3), Line 3: OS2+MS2 (5), Line 4: TL1+OS2+MS2+ACC1 (6),
-          // Line 5: TL1+OS2+MS3+ACC1 (7), Line 6: TL1+OS3+MS3+ACC1 (8), Line 7: TL1+OS4+MS3+ACC1 (9), Line 8: TL1+OS4+MS4+ACC1 (10)
+          // Bottom Market: Line 1: OS1+MS1 (2), Line 2: OS1+MS2 (3), Line 3: OS2+MS2 (4), Line 4: OS2+MS2+Bottom ACC (5),
+          // Line 5: OS2+MS3+Bottom ACC (6), Line 6: OS3+MS3+Bottom ACC (7), Line 7: OS4+MS3+Bottom ACC (8), Line 8: OS4+MS4+Bottom ACC (9)
           let bottomMarketTMs = [];
           if (L === 1) {
             bottomMarketTMs = ["Outsole 1", "Midsole 1"];
@@ -150,15 +129,15 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
           } else if (L === 3) {
             bottomMarketTMs = ["Outsole 1", "Outsole 2", "Midsole 1", "Midsole 2"];
           } else if (L === 4) {
-            bottomMarketTMs = ["Bottom Market TL", "Outsole 1", "Outsole 2", "Midsole 1", "Midsole 2", "ACC 1"];
+            bottomMarketTMs = ["Outsole 1", "Outsole 2", "Midsole 1", "Midsole 2", "Bottom ACC"];
           } else if (L === 5) {
-            bottomMarketTMs = ["Bottom Market TL", "Outsole 1", "Outsole 2", "Midsole 1", "Midsole 2", "Midsole 3", "ACC 1"];
+            bottomMarketTMs = ["Outsole 1", "Outsole 2", "Midsole 1", "Midsole 2", "Midsole 3", "Bottom ACC"];
           } else if (L === 6) {
-            bottomMarketTMs = ["Bottom Market TL", "Outsole 1", "Outsole 2", "Outsole 3", "Midsole 1", "Midsole 2", "Midsole 3", "ACC 1"];
+            bottomMarketTMs = ["Outsole 1", "Outsole 2", "Outsole 3", "Midsole 1", "Midsole 2", "Midsole 3", "Bottom ACC"];
           } else if (L === 7) {
-            bottomMarketTMs = ["Bottom Market TL", "Outsole 1", "Outsole 2", "Outsole 3", "Outsole 4", "Midsole 1", "Midsole 2", "Midsole 3", "ACC 1"];
+            bottomMarketTMs = ["Outsole 1", "Outsole 2", "Outsole 3", "Outsole 4", "Midsole 1", "Midsole 2", "Midsole 3", "Bottom ACC"];
           } else { // L >= 8
-            bottomMarketTMs = ["Bottom Market TL", "Outsole 1", "Outsole 2", "Outsole 3", "Outsole 4", "Midsole 1", "Midsole 2", "Midsole 3", "Midsole 4", "ACC 1"];
+            bottomMarketTMs = ["Outsole 1", "Outsole 2", "Outsole 3", "Outsole 4", "Midsole 1", "Midsole 2", "Midsole 3", "Midsole 4", "Bottom ACC"];
           }
 
           return [
@@ -166,7 +145,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
             Array.from({ length: subMaterialCount }, (_, i) => `Sub Material ${i + 1}`),
 
             // Raw Material (TL 0: Upper Market)
-            Array.from({ length: rawMaterialTMCount }, (_, i) => `Raw Material TM ${i + 1}`),
+            Array.from({ length: rawMaterialTMCount }, (_, i) => `Raw Material ${i + 1}`),
 
             // ACC Market (TL 0: Upper Market)
             Array.from({ length: accMarketCount }, (_, i) => `ACC Market ${i + 1}`),
@@ -204,17 +183,17 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
           // CO Label: 모든 라인에서 1개 고정
           const coLabelCount = 1;
 
-          // Box MH: Line 1: 1, Line 2: 1, Line 3: 2, Line 4: 2, Line 5: 3, Line 6: 3, Line 7: 4, Line 8: 4
-          let boxMHCount = 1;
-          if (L >= 3) boxMHCount = 2;
-          if (L >= 5) boxMHCount = 3;
-          if (L >= 7) boxMHCount = 4;
+          // Box: Line 1: 1, Line 2: 1, Line 3: 2, Line 4: 2, Line 5: 3, Line 6: 3, Line 7: 4, Line 8: 4
+          let boxCount = 1;
+          if (L >= 3) boxCount = 2;
+          if (L >= 5) boxCount = 3;
+          if (L >= 7) boxCount = 4;
 
-          // Paper MH: Line 1: 1, Line 2: 1, Line 3: 2, Line 4: 2, Line 5: 3, Line 6: 3, Line 7: 4, Line 8: 4
-          let paperMHCount = 1;
-          if (L >= 3) paperMHCount = 2;
-          if (L >= 5) paperMHCount = 3;
-          if (L >= 7) paperMHCount = 4;
+          // Paper: Line 1: 1, Line 2: 1, Line 3: 2, Line 4: 2, Line 5: 3, Line 6: 3, Line 7: 4, Line 8: 4
+          let paperCount = 1;
+          if (L >= 3) paperCount = 2;
+          if (L >= 5) paperCount = 3;
+          if (L >= 7) paperCount = 4;
 
           // FG WH 카테고리별 TM 개수 계산
           // Shipping: Line 1: 1, Line 2: 2, Line 3: 3, Line 4: 3, Line 5: 4, Line 6: 5, Line 7: 6, Line 8: 6
@@ -233,17 +212,17 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
 
           const stencilTMs = Array.from({ length: stencilCount }, (_, i) => `Stencil ${i + 1}`);
           const coLabelTMs = Array.from({ length: coLabelCount }, (_, i) => `CO Label ${i + 1}`);
-          const boxMHTMs = Array.from({ length: boxMHCount }, (_, i) => `Box MH ${i + 1}`);
-          const paperMHTMs = Array.from({ length: paperMHCount }, (_, i) => `Paper MH ${i + 1}`);
-          const shippingTMs = Array.from({ length: shippingCount }, (_, i) => `Shipping TM ${i + 1}`);
-          const incomingSettingTMs = Array.from({ length: incomingSettingCount }, (_, i) => `Incoming Setting TM ${i + 1}`);
-          const scanSystemReportTMs = Array.from({ length: scanSystemReportCount }, (_, i) => `Scan System Report TM ${i + 1}`);
+          const boxTMs = Array.from({ length: boxCount }, (_, i) => `Box ${i + 1}`);
+          const paperTMs = Array.from({ length: paperCount }, (_, i) => `Paper ${i + 1}`);
+          const shippingTMs = Array.from({ length: shippingCount }, (_, i) => `Shipping ${i + 1}`);
+          const incomingSettingTMs = Array.from({ length: incomingSettingCount }, (_, i) => `Incoming Setting ${i + 1}`);
+          const scanSystemReportTMs = Array.from({ length: scanSystemReportCount }, (_, i) => `Scan System Report ${i + 1}`);
 
           return [
             // P&L Market TM들 (TL 0) - 첫 번째 컬럼
-            [...stencilTMs, ...coLabelTMs, ...boxMHTMs],
+            [...stencilTMs, ...coLabelTMs, ...boxTMs],
             // P&L Market TM들 (TL 0) - 두 번째 컬럼
-            [...paperMHTMs],
+            [...paperTMs],
             // FG WH TM들 (TL 1) - 세 번째 컬럼
             [...shippingTMs],
             // FG WH TM들 (TL 1) - 네 번째 컬럼

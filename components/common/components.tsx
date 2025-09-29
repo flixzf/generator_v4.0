@@ -112,7 +112,7 @@ export const CustomPositionNode: React.FC<CustomPositionNodeProps> = ({
       case "direct":
         bgColor = "bg-gray-50";
 
-        borderColor = "border-gray-300";
+        borderColor = "border-2 border-dashed border-gray-400";
 
         break;
 

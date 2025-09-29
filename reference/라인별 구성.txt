@@ -1,0 +1,115 @@
+라인별 Admin 구성:
+  - Line 1: Personnel 1개
+  - Line 2: Personnel 1개 + Production 1개
+  - Line 3: Personnel 1개 + Production 1개 + ISQ 1개
+  - Line 4: Personnel 1개 + Production 1개 + ISQ 1개
+  - Line 5: Personnel 2개 + Production 1개 + ISQ 1개
+  - Line 6: Personnel 2개 + Production 1개 + ISQ 1개
+  - Line 7: Personnel 2개 + Production 2개 + ISQ 1개
+  - Line 8: Personnel 2개 + Production 2개 + ISQ 1개
+
+  구현 로직:
+  1. Personnel은 Line 5부터 2개로 증가
+  2. Production은 Line 2부터 1개, Line 7부터 2개
+  3. ISQ는 Line 3부터 1개 추가
+  4. 각 카테고리가 2개 이상일 때는 "Personnel 1", "Personnel 2" 형태로       
+  번호 추가
+
+
+
+Small Tooling 구조:
+  - 2개 TL: "Small Tooling", "Pallet"
+  - 2개 파트: "Last+ Small Tooling", "Pallet"
+
+  라인별 Small Tooling 구성:
+
+  Last+ Small Tooling (TL 0):
+  - Line 1: 0개 TM
+  - Line 2-3: 1개 TM
+  - Line 4-5: 2개 TM
+  - Line 6-7: 3개 TM
+  - Line 8: 4개 TM
+
+  Pallet (TL 1):
+  - Line 1: 0개 TM (TL만 존재)
+  - Line 2-4: 1개 TM
+  - Line 5-6: 2개 TM
+  - Line 7-8: 3개 TM
+
+  구현된 로직:
+  1. categoryTLMap: [0, 1]로 Last+ Small Tooling은 TL 0에, Pallet은 TL       
+  1에 연결
+  2. 라인 수에 따라 각 카테고리별 TM 개수가 동적으로 조정
+  3. 표의 요구사항에 따라 Last Control과 Cutting Die/Pad/Mold를 "Last+       
+  Small Tooling"으로 통합
+
+
+
+Last+ Small Tooling (TL 0):
+  - Line 1: 0개 TM
+  - Line 2-3: 1개 TM
+  - Line 4-5: 2개 TM
+  - Line 6-7: 3개 TM
+  - Line 8: 4개 TM
+
+  Pallet (TL 1):
+  - Line 1: 0개 TM (TL만 존재)
+  - Line 2-4: 1개 TM
+  - Line 5-6: 2개 TM
+  - Line 7-8: 3개 TM
+
+  구현된 로직:
+  1. categoryTLMap: [0, 1]로 Last+ Small Tooling은 TL 0에, Pallet은 TL       
+  1에 연결
+  2. 라인 수에 따라 각 카테고리별 TM 개수가 동적으로 조정
+  3. 표의 요구사항에 따라 Last Control과 Cutting Die/Pad/Mold를 "Last+       
+  Small Tooling"으로 통합
+
+
+Market 부서 구조 (라인별):
+
+  Sub Material (Upper Market TL):
+  - Line 1-2: 1개 TM
+  - Line 3-4: 2개 TM
+  - Line 5-6: 3개 TM
+  - Line 7-8: 4개 TM
+
+  Raw Material (Upper Market TL):
+  - Line 1: Raw Material TM 0개
+  - Line 2: Raw Material TM 1개
+  - Line 3-4: Raw Material TM 2개
+  - Line 5: Raw Material TM 3개
+  - Line 6: Raw Material TM 4개
+  - Line 7-8: Raw Material TM 5개
+
+  ACC Market (Upper Market TL):
+  - Line 1-2: 1개 TM
+  - Line 3-4: 2개 TM
+  - Line 5-6: 3개 TM
+  - Line 7-8: 4개 TM
+
+  Bottom Market (Bottom Market TL):
+  - Line 1: Outsole 1 + Midsole 1 (2개)
+  - Line 2: Outsole 1 + Midsole 1,2 (3개)
+  - Line 3: Outsole 1,2 + Midsole 1,2 (4개)
+  - Line 4: TL + Outsole 1,2 + Midsole 1,2 + ACC 1 (6개)
+  - Line 5: TL + Outsole 1,2 + Midsole 1,2,3 + ACC 1 (7개)
+  - Line 6: TL + Outsole 1,2,3 + Midsole 1,2,3 + ACC 1 (8개)
+  - Line 7: TL + Outsole 1,2,3,4 + Midsole 1,2,3 + ACC 1 (9개)
+  - Line 8: TL + Outsole 1,2,3,4 + Midsole 1,2,3,4 + ACC 1 (10개)
+
+
+
+라인별 TM 개수 조정:
+
+  P&L Market 카테고리:
+  - Stencil: Line 1-2: 1개, Line 3-4: 2개, Line 5-6: 3개, Line 7-8: 4개      
+  - CO Label: 모든 라인에서 1개 고정
+  - Box MH: Line 1-2: 1개, Line 3-4: 2개, Line 5-6: 3개, Line 7-8: 4개       
+  - Paper MH: Line 1-2: 1개, Line 3-4: 2개, Line 5-6: 3개, Line 7-8: 4개     
+
+  FG WH 카테고리:
+  - Shipping: Line 1: 1개, Line 2: 2개, Line 3-4: 3개, Line 5: 4개, Line     
+  6: 5개, Line 7-8: 6개
+  - Incoming Setting: 라인 수와 동일 (Line 1: 1개, Line 8: 8개)
+  - Scan System Report: 모든 라인에서 1개 고정
