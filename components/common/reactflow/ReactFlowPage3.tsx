@@ -10,11 +10,11 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
-import { getColorCategory } from '../theme';
-import { CustomPositionNode, nodeTypes, edgeTypes } from '../components';
-import { CustomCenterYEdge } from '../components';
-import { LAYOUT_CONFIG, calculateDeptWidth, computeCategoryXs, computeTLXs, computeGLXs, computeDeptNameX, getYPosition, getEdgeBendY, getHierarchyY, getTMY, createEdgeConfig, getUnifiedGLBendY, sequentialGLToTLMapping, calculateEntityPositions } from '../layout';
-import { getDepartmentsForPage, DeptLike } from '../department-data';
+import { getColorCategory } from '@/components/common/theme';
+import { CustomPositionNode, nodeTypes, edgeTypes } from '@/components/common/components';
+import { CustomCenterYEdge } from '@/components/common/components';
+import { LAYOUT_CONFIG, calculateDeptWidth, computeCategoryXs, computeTLXs, computeGLXs, computeDeptNameX, getYPosition, getEdgeBendY, getHierarchyY, getTMY, createEdgeConfig, getUnifiedGLBendY, sequentialGLToTLMapping, calculateEntityPositions } from '@/components/common/layout';
+import { getDepartmentsForPage, DeptLike } from '@/components/common/department-data';
 
 interface ReactFlowPage3Props {
   onInit?: (instance: ReactFlowInstance) => void;

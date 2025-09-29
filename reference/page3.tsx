@@ -1,20 +1,61 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { useOrgChart } from "@/context/OrgChartContext";
-import { ReactFlowPage3 } from "@/components/common/reactflow/ReactFlowPage3";
-import { makeDoubleLines } from "@/components/common/utils";
+import { ReactFlowPage3 } from "@/components/common/ReactFlowPage3";
+import { makeDoubleLines } from "@/components/common/LineUtils";
 import { ReactFlowInstance } from 'reactflow';
 
 const Page3: React.FC = () => {
   const { config, updateConfig } = useOrgChart();
 
-  // === 확대/축소 관련 ===
+  // === 확대/축소 & 패닝(드래그) 관련 ===
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [scrollPos, setScrollPos] = useState({ x: 0, y: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleZoomIn = () => rfInstance?.zoomIn?.({ duration: 300 });
   const handleZoomOut = () => rfInstance?.zoomOut?.({ duration: 300 });
   const handleZoomReset = () => rfInstance?.fitView?.({ duration: 300 });
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 1 || e.button === 0) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !containerRef.current) return;
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    containerRef.current.scrollLeft = scrollPos.x - dx;
+    containerRef.current.scrollTop = scrollPos.y - dy;
+  };
+
+  const handleMouseUp = () => {
+    if (isDragging && containerRef.current) {
+      setScrollPos({
+        x: containerRef.current.scrollLeft,
+        y: containerRef.current.scrollTop,
+      });
+      setIsDragging(false);
+    }
+  };
+
+  useEffect(() => {
+    const preventWheel = (ev: WheelEvent) => {
+      if (isDragging) ev.preventDefault();
+    };
+    window.addEventListener("wheel", preventWheel, { passive: false });
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("wheel", preventWheel);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
 
   // Use centralized line utilities
 

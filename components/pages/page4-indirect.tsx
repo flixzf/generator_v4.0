@@ -26,9 +26,9 @@ type Summary = {
 // =================================================================
 
 // Import the getProcessGroups function from ReactFlowPage1
-import { getProcessGroups } from '@/components/common/ReactFlowPage1';
-import { classifyPosition } from '@/components/common/ClassificationEngine';
-import { getDepartmentsForPage } from '@/components/common/DepartmentData';
+import { getProcessGroups } from '@/components/common/reactflow/ReactFlowPage1';
+import { classifyPosition } from '@/components/common/classification';
+import { getDepartmentsForPage } from '@/components/common/department-data';
 
 // Use the imported getProcessGroups function with 'calculation' context
 function getProcessGroups_p1(config: any, selectedModel?: any, lineIndex?: number) {

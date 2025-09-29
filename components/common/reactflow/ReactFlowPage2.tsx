@@ -10,12 +10,12 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { useOrgChart } from '@/context/OrgChartContext';
-import { getColorCategory } from '../theme';
-import { makeDoubleLines, makeSingleLines, getShippingTMCount } from '../utils';
-import { CustomPositionNode, nodeTypes, edgeTypes } from '../components';
-import { CustomCenterYEdge } from '../components';
-import { LAYOUT_CONFIG, calculateDeptWidth, DeptLayout, computeCategoryXs, computeTLXs, computeGLXs, computeDeptNameX, getYPosition, getHierarchyY, getTMY, calculateEntityPositions } from '../layout';
-import { getDepartmentsForPage, DeptLike } from '../department-data';
+import { getColorCategory } from '@/components/common/theme';
+import { makeDoubleLines, makeSingleLines, getShippingTMCount } from '@/components/common/utils';
+import { CustomPositionNode, nodeTypes, edgeTypes } from '@/components/common/components';
+import { CustomCenterYEdge } from '@/components/common/components';
+import { LAYOUT_CONFIG, calculateDeptWidth, DeptLayout, computeCategoryXs, computeTLXs, computeGLXs, computeDeptNameX, getYPosition, getHierarchyY, getTMY, calculateEntityPositions } from '@/components/common/layout';
+import { getDepartmentsForPage, DeptLike } from '@/components/common/department-data';
 
 interface ReactFlowPage2Props {
   onInit?: (instance: ReactFlowInstance) => void;

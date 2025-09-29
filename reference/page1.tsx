@@ -2,10 +2,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
-import { PositionBox } from "@/components/common/components";
+import {
+  PositionBox,
+  LMGroup,
+  Boundary,
+} from "@/components/common/OrganizationTree";
 import { useOrgChart } from "@/context/OrgChartContext";
-import { LAYOUT } from '@/components/common/theme';
-import { ReactFlowPage1 } from "@/components/common/reactflow/ReactFlowPage1";
+import { GAPS, BACKGROUNDS, BORDERS, LAYOUTS, DEPARTMENT_GAPS, COMMON_STYLES, CONNECTORS } from '@/components/common/styles';
+import { getPage1SpacingConfig, getVerticalSpacing, getHorizontalSpacing } from "@/components/common/spacingConfig";
+import {
+  InteractivePositionBox,
+  PositionData,
+  createPositionDataFromLegacy,
+  useInteractivePositionBox
+} from "@/components/common/InteractivePositionBox";
+import { classifyPosition } from "@/components/common/ClassificationEngine";
+import { ReactFlowPage1 } from "@/components/common/ReactFlowPage1";
 import { ReactFlowInstance } from 'reactflow';
 
 // ---------------------------
@@ -37,7 +49,7 @@ const defaultConfig: Config = {
 };
 
 // Import the real getProcessGroups function from ReactFlowPage1
-import { getProcessGroups } from '@/components/common/reactflow/ReactFlowPage1';
+import { getProcessGroups } from '@/components/common/ReactFlowPage1';
 
 // ---------------------------
 // 메인 컴포넌트
@@ -51,17 +63,88 @@ const Page1: React.FC = () => {
     updateLineModelSelection
   } = useOrgChart();
 
+  // InteractivePositionBox 훅 사용
+  const {
+    selectedPosition,
+    setSelectedPosition,
+    highlightedPositions,
+    handlePositionClick,
+    handlePositionDoubleClick,
+    handlePositionHover,
+  } = useInteractivePositionBox();
 
   // 줌(확대/축소)
   const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+  // 패닝(이동)
+  const [translate, setTranslate] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // 드래그용 상태
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragThreshold] = useState(5); // 드래그 임계값 (픽셀)
+  const [hasDraggedEnough, setHasDraggedEnough] = useState(false);
 
   // 참조 (상단 컨테이너, 조직도)
   const topContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
   // 공통 spacing 설정 사용
-  // const spacingConfig = getPage1SpacingConfig(); // 삭제된 함수 - 더 이상 사용하지 않음
+  const spacingConfig = getPage1SpacingConfig();
 
+  // InteractivePositionBox 생성 헬퍼 함수
+  const createInteractiveBox = (
+    title: string,
+    subtitle?: string,
+    level: number = 0,
+    department?: string,
+    processType?: string,
+    additionalData?: Partial<PositionData>
+  ) => {
+    // 부서명 결정 - additionalData에서 우선 가져오고, 없으면 매개변수 사용
+    const finalDepartment = additionalData?.department || department || 'Line';
+    
+    // 레벨을 문자열로 변환
+    const levelMap: Record<number, 'PM' | 'LM' | 'GL' | 'TL' | 'TM' | 'DEPT'> = {
+      0: 'PM',
+      1: 'LM', 
+      2: 'GL',
+      3: 'TL',
+      4: 'TM',
+      5: 'DEPT'
+    };
+    const levelString = levelMap[level] || 'TM';
+    
+    // 분류 엔진을 사용하여 colorCategory 결정 (additionalData에 명시적으로 제공된 경우 우선 사용)
+    const colorCategory = additionalData?.colorCategory || classifyPosition(
+      finalDepartment,
+      levelString,
+      processType,
+      subtitle,
+      title
+    );
+
+    const data = createPositionDataFromLegacy(title, subtitle, level, colorCategory);
+
+    // 추가 데이터 병합
+    if (additionalData) {
+      Object.assign(data, additionalData);
+    }
+
+    // 선택/하이라이트 상태 적용
+    data.isSelected = selectedPosition?.id === data.id;
+    data.isHighlighted = highlightedPositions.includes(data.id);
+
+    return (
+      <InteractivePositionBox
+        data={data}
+        onClick={handlePositionClick}
+        onDoubleClick={handlePositionDoubleClick}
+        onHover={handlePositionHover}
+        showTooltip={true}
+        isInteractive={true}
+      />
+    );
+  };
 
   // ---------------------------
   // 모든 라인의 분리 공정을 수집하는 함수
@@ -165,7 +248,7 @@ const Page1: React.FC = () => {
     // PM 박스 높이 (80px) + 간격 + LM 박스 높이 (80px) + 간격을 계산하여 GL 레벨 맞춤
     const pmHeight = 80;
     const vsmHeight = 80;
-    const verticalGap = 48; // 기본 hierarchy 간격
+    const verticalGap = spacingConfig.verticalHierarchy;
     const topMargin = pmHeight + verticalGap + vsmHeight + verticalGap;
 
     return (
@@ -177,7 +260,15 @@ const Page1: React.FC = () => {
               {/* GL (No-sew만) */}
               {col.gl && (
                 <div className="mb-2">
-                  <PositionBox title="GL" subtitle={col.label} level={2} />
+                  {createInteractiveBox("GL", col.label, 2, col.label, col.type, {
+                    department: col.label,
+                    manpower: 1,
+                    responsibilities: [col.label + " 관리", "특수 작업"],
+                    processName: col.label,
+                    efficiency: 90,
+                    status: "active",
+
+                  })}
                 </div>
               )}
               {/* 헤더 (GL 없는 경우) */}
@@ -187,23 +278,47 @@ const Page1: React.FC = () => {
               {/* TL 4개 세로로 */}
               {col.lines.map((line, idx) => (
                 <div key={line.lineIdx} className="mb-2">
-                  <PositionBox 
-                    title="TL" 
-                    subtitle={`TL [${line.manpower}] / Line ${line.lineIdx + 1} / ${col.label}`} 
-                    level={3} 
-                  />
+                  {createInteractiveBox(
+                    "TL",
+                    `TL [${line.manpower}] / Line ${line.lineIdx + 1} / ${col.label}`,
+                    3,
+                    col.label,
+                    col.type,
+                    {
+                      department: col.label,
+                      manpower: line.manpower,
+                      responsibilities: [`Line ${line.lineIdx + 1} ${col.label} 운영`],
+                      processName: `Line ${line.lineIdx + 1} ${col.label}`,
+                      efficiency: 85,
+                      status: "active",
+                      lineIndex: line.lineIdx,
+
+                    }
+                  )}
                 </div>
               ))}
               {/* TL-TM 구분선/여백 */}
-              <div style={{ height: `48px` }} />
+              <div style={{ height: `${spacingConfig.verticalHierarchy}px` }} />
               {/* TM 4개 세로로 */}
               {col.lines.map((line, idx) => (
                 <div key={line.lineIdx} className="mb-2">
-                  <PositionBox 
-                    title="TM" 
-                    subtitle={`TM(MH) / Line ${line.lineIdx + 1} Cutting / → ${col.label}`} 
-                    level={4} 
-                  />
+                  {createInteractiveBox(
+                    "TM",
+                    `TM(MH) / Line ${line.lineIdx + 1} Cutting / → ${col.label}`,
+                    4,
+                    col.label,
+                    col.type,
+                    {
+                      department: col.label,
+                      manpower: line.manpower,
+                      responsibilities: [`Line ${line.lineIdx + 1} Cutting → ${col.label} 작업`],
+                      processName: `Line ${line.lineIdx + 1} Cutting → ${col.label}`,
+                      efficiency: 80,
+                      status: "active",
+                      lineIndex: line.lineIdx,
+
+                    }
+                  )}
                 </div>
               ))}
             </div>
@@ -222,6 +337,53 @@ const Page1: React.FC = () => {
     rfInstance?.fitView?.({ duration: 300 });
   };
 
+  // 개선된 드래그 핸들러 (InteractivePositionBox와 충돌 방지)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    // 클릭 대상이 InteractivePositionBox 내부인지 확인
+    const target = e.target as HTMLElement;
+    const isInteractiveBox = target.closest('[data-position-id]');
+
+    // InteractivePositionBox가 아닌 경우에만 드래그 시작
+    if (!isInteractiveBox && (e.button === 0 || e.button === 1)) {
+      e.preventDefault();
+      setIsDragging(true);
+      setHasDraggedEnough(false);
+      setDragStart({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+
+    // 드래그 임계값을 넘었는지 확인
+    if (!hasDraggedEnough) {
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      if (distance > dragThreshold) {
+        setHasDraggedEnough(true);
+      }
+    }
+
+    if (hasDraggedEnough) {
+      setDragStart({ x: e.clientX, y: e.clientY });
+      setTranslate((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+    setHasDraggedEnough(false);
+  };
+
+  // 전역 mouseup 등록
+  useEffect(() => {
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   // ===== 초기 렌더링 시, 조직도를 상단 컨테이너에 맞춤 =====
   useEffect(() => {
@@ -267,8 +429,8 @@ const Page1: React.FC = () => {
     if (position === "PM") return 1;
 
     if (position === "LM") {
-      // LM은 1개 라인당 1명으로 계산
-      return config.lineCount;
+      // LM은 2개 라인당 1명으로 계산 (ReactFlowPage1과 일치)
+      return Math.ceil(config.lineCount / 2);
     }
 
     // 모델 기반 인원 계산
@@ -351,6 +513,12 @@ const Page1: React.FC = () => {
 
   const totalPeople = Object.values(positionCounts).reduce((acc, count) => acc + count, 0);
 
+  // 관련 위치 ID들을 찾는 함수
+  const getRelatedPositionIds = (data: PositionData): string[] => {
+    // 같은 라인이나 부서의 위치들을 찾아서 하이라이트
+    // 실제 구현에서는 더 복잡한 로직이 필요
+    return [];
+  };
 
   // 실제 JSX
   return (
@@ -443,6 +611,27 @@ const Page1: React.FC = () => {
           </button>
         </div>
 
+        {/* 선택된 위치 정보 패널 (왼쪽 상단) */}
+        {selectedPosition && (
+          <div className="fixed left-8 top-8 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50 max-w-[300px]">
+            <div className="font-semibold text-lg mb-2">{selectedPosition.title}</div>
+            <div className="text-sm text-gray-600 mb-2">{selectedPosition.subtitle}</div>
+            <div className="space-y-1 text-sm">
+              {selectedPosition.department && <div><strong>부서:</strong> {selectedPosition.department}</div>}
+              {selectedPosition.manpower && <div><strong>인원:</strong> {selectedPosition.manpower}명</div>}
+              {selectedPosition.efficiency && <div><strong>효율성:</strong> {selectedPosition.efficiency}%</div>}
+              {selectedPosition.responsibilities && (
+                <div><strong>담당업무:</strong> {selectedPosition.responsibilities.join(', ')}</div>
+              )}
+            </div>
+            <button
+              onClick={() => setSelectedPosition(null)}
+              className="mt-2 px-2 py-1 bg-gray-200 rounded text-xs hover:bg-gray-300"
+            >
+              닫기
+            </button>
+          </div>
+        )}
 
         {/* 설정 패널 - 우측 하단으로 이동 */}
         <div className="fixed right-8 bottom-8 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
