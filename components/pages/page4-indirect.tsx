@@ -812,9 +812,9 @@ export default function Page4Indirect() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Aggregation Page-indirect+OH</h1>
-      <SummaryTable title="# LM Plant Indirect Summary" data={indirectSummary} laborType="Indirect" />
-      <SummaryTable title="# LM Plant Over Head Summary" data={overheadSummary} laborType="Overhead" />
+      <h1 className="text-2xl font-bold mb-6">Total Headcount - Indirect + Overhead</h1>
+      <SummaryTable title="# Indirect Summary" data={indirectSummary} laborType="Indirect" />
+      <SummaryTable title="# Overhead Summary" data={overheadSummary} laborType="Overhead" />
     </div>
   );
 } 

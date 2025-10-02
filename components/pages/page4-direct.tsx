@@ -42,7 +42,7 @@ export default function Page4Direct() {
 
   return (
     <div className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Aggregation Page-direct</h1>
+      <h1 className="text-2xl font-bold mb-4">Total Headcount  - Direct</h1>
       <div className="overflow-x-auto">
         <table className="min-w-full border-collapse">
           <thead className="bg-slate-600 text-white">

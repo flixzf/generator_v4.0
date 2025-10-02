@@ -30,6 +30,15 @@ export default function OrgChartPage() {
     }
   };
 
+  const pageOptions = [
+    { value: "1", group: "Organization Structure", label: "Production Line" },
+    { value: "2", group: "Organization Structure", label: "Production Plant" },
+    { value: "3", group: "Organization Structure", label: "Support Department" },
+    { value: "4-indirect", group: "Total Headcount", label: "Indirect + Overhead" },
+    { value: "4-direct", group: "Total Headcount", label: "Direct" },
+    { value: "5", group: "DB", label: "IE Report" },
+  ];
+
   return (
     <div className="p-4">
       <OrgChartProvider>
@@ -38,14 +47,23 @@ export default function OrgChartPage() {
           <select
             onChange={(e) => setCurrentPage(e.target.value)}
             value={currentPage}
-            className="mb-4 p-3 border rounded"
+            className="mb-4 p-3 border border-gray-400 rounded font-mono"
           >
-            <option value="1">Line</option>
-            <option value="2">Plant</option>
-            <option value="3">Support Department</option>
-            <option value="4-direct">Aggregation-Direct</option>
-            <option value="4-indirect">Aggregation-Indirect+OH</option>
-            <option value="5">Model-based Manpower Setting</option>
+            {pageOptions.map((opt, index) => {
+              // Check if this is the first occurrence of this group
+              const isFirstInGroup = index === 0 || pageOptions[index - 1].group !== opt.group;
+
+              // For display in dropdown: hide group label for non-first items
+              const dropdownText = isFirstInGroup
+                ? `${'\u00A0'.repeat(27 - opt.group.length)}${opt.group} - ${opt.label}`
+                : `${'\u00A0'.repeat(27)} - ${opt.label}`;
+
+              return (
+                <option key={opt.value} value={opt.value}>
+                  {dropdownText}
+                </option>
+              );
+            })}
           </select>
 
           {renderCurrentPage()}
