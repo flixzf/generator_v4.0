@@ -75,6 +75,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
 
           return result;
         })(),
+        parts: ["Admin"],
       },
       // Small Tooling 부서 - 라인 개수에 따른 동적 구성 (한 줄 배치)
       {
@@ -91,6 +92,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
 
           return [allTMs]; // 단일 컬럼으로 반환
         })(),
+        parts: ["Small Tooling"],
       },
       {
         title: "Market",
@@ -219,20 +221,22 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
           const scanSystemReportTMs = Array.from({ length: scanSystemReportCount }, (_, i) => `Scan System Report ${i + 1}`);
 
           return [
-            // P&L Market TM들 (TL 0) - 첫 번째 컬럼
-            [...stencilTMs, ...coLabelTMs, ...boxTMs],
-            // P&L Market TM들 (TL 0) - 두 번째 컬럼
+            // P&L Market TM들 (TL 0) - 첫 번째 컬럼: Carton (Stencil + CO Label)
+            [...stencilTMs, ...coLabelTMs],
+            // P&L Market TM들 (TL 0) - 두 번째 컬럼: Inner Box (Box)
+            [...boxTMs],
+            // P&L Market TM들 (TL 0) - 세 번째 컬럼: Paper
             [...paperTMs],
-            // FG WH TM들 (TL 1) - 세 번째 컬럼
+            // FG WH TM들 (TL 1) - 네 번째 컬럼: Shipping
             [...shippingTMs],
-            // FG WH TM들 (TL 1) - 네 번째 컬럼
+            // FG WH TM들 (TL 1) - 다섯 번째 컬럼: Stock Management
             [...incomingSettingTMs],
-            // FG WH TM들 (TL 1) - 다섯 번째 컬럼
+            // FG WH TM들 (TL 1) - 여섯 번째 컬럼: Scan, System, Report
             [...scanSystemReportTMs],
           ];
         })(),
-        parts: ["Carton/Inner Box", "Paper", "Shipping", "Stock Management", "Scan, System, Report"],
-        categoryTLMap: [0, 0, 1, 1, 1] // 첫 2개는 P&L Market(TL 0), 나머지 3개는 FG WH(TL 1)
+        parts: ["Carton", "Inner Box", "Paper", "Shipping", "Stock Management", "Scan, System, Report"],
+        categoryTLMap: [0, 0, 0, 1, 1, 1] // 첫 3개는 P&L Market(TL 0), 나머지 3개는 FG WH(TL 1)
       },
     ];
 
@@ -322,7 +326,8 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     const levelHeight = LAYOUT_CONFIG.LEVEL_HEIGHT;
     const partLevelY = getHierarchyY('PART');
 
-    // 공통 함수를 사용하여 부서 배치 계산
+    // 공통 함수를 사용하여 부서 배치 계산 - 기본 계산만 사용
+    // 실제 bounding box는 TM 노드 생성 후에 계산
     const deptEntities = departments.map((dept: any) => ({
       width: calculateDeptWidth(dept as any)
     }));
@@ -330,9 +335,8 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
     const { positions: deptPositions } = calculateEntityPositions(
       deptEntities,
       undefined, // separatedGap 없음
-      150 // 부서간 간격 150px
+      180 // 부서간 간격 180px (edge-to-edge spacing, 1 box width)
     );
-
 
     // 부서명 텍스트 노드들 (최상단에 배치)
     const deptNameY = getHierarchyY('DEPT');
@@ -465,24 +469,24 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
         const reorderedCatIndices: number[] = [];
         const catXPositions: number[] = [];
 
-        // P&L Market (TL 0) 카테고리들 - 2개
+        // P&L Market (TL 0) 카테고리들 - 3개 (Carton, Inner Box, Paper)
         const pnlCats = tlGroups[0] || [];
         if (pnlCats.length > 0) {
-          // P&L Market TL을 기준으로 카테고리들을 좌우로 배치
-          const pnlTLX = deptCenterX - spacing; // P&L Market TL 위치
+          // P&L Market TL을 기준으로 카테고리들을 배치
+          const pnlTLX = deptCenterX - spacing * 1.5; // P&L Market TL 위치
 
           pnlCats.forEach((catIdx, index) => {
             reorderedCatIndices.push(catIdx);
-            // 첫 번째는 왼쪽, 두 번째는 오른쪽
-            catXPositions.push(pnlTLX + (index - 0.5) * spacing);
+            // 3개 카테고리를 TL 중심으로 배치: 왼쪽, 중앙, 오른쪽
+            catXPositions.push(pnlTLX + (index - 1) * spacing);
             assignedTLIndices.push(0);
           });
         }
 
-        // FG WH (TL 1) 카테고리들 - 3개
+        // FG WH (TL 1) 카테고리들 - 3개 (Shipping, Stock Management, Scan/System/Report)
         const fgwhCats = tlGroups[1] || [];
         if (fgwhCats.length > 0) {
-          // FG WH TL을 기준으로 카테고리들을 좌우로 배치
+          // FG WH TL을 기준으로 카테고리들을 배치
           const fgwhTLX = deptCenterX + spacing * 1.5; // FG WH TL 위치
 
           fgwhCats.forEach((catIdx, index) => {
@@ -496,7 +500,7 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
         adjustedCatXs = catXPositions;
 
         // TL 위치 계산
-        const pnlTLX = deptCenterX - spacing;
+        const pnlTLX = deptCenterX - spacing * 1.5;
         const fgwhTLX = deptCenterX + spacing * 1.5;
 
         adjustedTLXs = [pnlTLX, fgwhTLX];
@@ -670,6 +674,65 @@ export const ReactFlowPage2: React.FC<ReactFlowPage2Props> = ({ onInit }) => {
           });
         });
       }
+    });
+
+    // DEBUG: Calculate ACTUAL bounding boxes from TM node positions
+    const deptBoundingBoxes = departments.map((dept: any, deptIndex: number) => {
+      const titleStr = Array.isArray(dept.title) ? dept.title[0] : dept.title;
+
+      // Find all TM nodes for this department
+      const deptTMNodes = nodes.filter(n =>
+        n.data.level === 'TM' &&
+        (n.data.department === titleStr ||
+         (titleStr === 'Market' && n.data.department === titleStr) ||
+         (titleStr.includes('FG WH') && n.data.department === titleStr))
+      );
+
+      if (deptTMNodes.length === 0) {
+        return null;
+      }
+
+      // Find min and max X positions
+      const boxWidth = 160;
+
+      const leftMost = Math.min(...deptTMNodes.map(n => n.position.x));
+      const rightMost = Math.max(...deptTMNodes.map(n => n.position.x + boxWidth));
+
+      return {
+        deptIndex,
+        title: titleStr,
+        left: leftMost,
+        right: rightMost,
+        width: rightMost - leftMost
+      };
+    }).filter((b: any) => b !== null);
+
+    // Add bounding box visualization
+    console.log('=== ACTUAL Department Bounding Boxes (from TM positions) ===');
+    deptBoundingBoxes.forEach((bbox: any) => {
+      console.log(`${bbox.title}: width=${bbox.width.toFixed(0)}px, left=${bbox.left.toFixed(0)}, right=${bbox.right.toFixed(0)}`);
+
+      nodes.push({
+        id: `bbox-${bbox.deptIndex}`,
+        type: 'customPosition',
+        position: { x: bbox.left, y: deptNameY - 20 },
+        data: {
+          title: `${bbox.title} [${bbox.width.toFixed(0)}px]`,
+          subtitle: '',
+          level: 'DEPT',
+          colorCategory: 'direct'
+        },
+        style: {
+          width: bbox.width,
+          height: 600,
+          border: '3px solid red',
+          backgroundColor: 'rgba(255,0,0,0.05)',
+          pointerEvents: 'none',
+          zIndex: -1
+        },
+        draggable: false,
+        selectable: false
+      });
     });
 
     return { nodes, edges };

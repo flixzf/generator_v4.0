@@ -65,7 +65,7 @@ export const ReactFlowPage3: React.FC<ReactFlowPage3Props> = ({ onInit }) => {
     const tpmStitchingTM = (L <= 4 ? L : 4 + Math.ceil((L - 4) / 2));
     const tpmStitchingTMs = Array.from({ length: tpmStitchingTM }, (_, i) => `Stitching-${i + 1}`);
     const tpmCSATM = (L <= 5 ? (L - 1) : 4 + Math.ceil((L - 5) / 2));
-    const tpmCSATMs = Array.from({ length: Math.max(0, tpmCSATM) }, (_, i) => `C&S-${i + 1}`);
+    const tpmCSATMs = Array.from({ length: Math.max(0, tpmCSATM) }, (_, i) => `Cutting &\nStockfit-Assembly-${i + 1}`);
     const noSewTm = (L === 1 ? 0 : L === 2 ? 1 : L === 3 ? 2 : 2 + Math.floor((L - 3) / 2));
     const cmmsTm = (L < 4 ? 0 : 1 + Math.floor((L - 4) / 8));
     const tpmNoSewTMs = [

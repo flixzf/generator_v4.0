@@ -274,18 +274,19 @@ const Page1: React.FC = () => {
     // 모델 기반 인원 계산
     let total = 0;
 
+    // 분리된 공정을 가진 라인들 찾기
+    const linesWithNosew: number[] = [];
+    const linesWithHfWelding: number[] = [];
+
     lineModelSelections.forEach((modelIndex, lineIndex) => {
       const selectedModel = models[modelIndex];
       if (!selectedModel) return;
 
       // 'display' 컨텍스트를 명시적으로 전달하여 병합된 구조를 사용
-      const { mainProcesses, separatedProcesses } = getProcessGroups(config, selectedModel, lineIndex, 'display');
+      const { mainProcesses } = getProcessGroups(config, selectedModel, lineIndex, 'display');
 
       // 메인 공정들의 인원 계산
       mainProcesses.forEach((group) => {
-        // 병합된 Stockfit-Assembly 노드 처리
-        const isStockfitAssembly = group.gl?.subtitle?.includes('Stockfit-Assembly');
-
         if (position === "GL") {
           // 병합된 노드는 하나의 GL로 계산
           total += group.gl.count || 1;
@@ -298,18 +299,49 @@ const Page1: React.FC = () => {
         }
       });
 
-      // 분리된 공정들의 인원 계산
-      separatedProcesses.forEach((group) => {
-        if (position === "GL") {
-          total += group.gl.count || 1;
-        } else if (position === "TL") {
-          total += group.tlGroup.length;
-        } else if (position === "TM") {
-          // 분리된 공정의 TM도 OH/indirect 박스 개수만 계산
-          total += group.tmGroup?.length || 0;
-        }
-      });
+      // 분리된 공정 체크
+      const processes = selectedModel.processes || [];
+      if (processes.some((p: any) => p?.name && p.name.toLowerCase().includes('no-sew'))) {
+        linesWithNosew.push(lineIndex);
+      }
+      if (processes.some((p: any) => p?.name && p.name.toLowerCase().includes('hf welding'))) {
+        linesWithHfWelding.push(lineIndex);
+      }
     });
+
+    // No-sew 분리된 공정 인원 계산 (ReactFlowPage1 로직과 동일)
+    if (linesWithNosew.length > 0) {
+      const shiftCols = config.shiftsCount || 1;
+      const totalTLCount = linesWithNosew.length * shiftCols;
+
+      if (position === "GL") {
+        // No-sew GL: 4개 TL당 1개 GL (Math.floor(totalTLCount / 4))
+        total += Math.floor(totalTLCount / 4);
+      } else if (position === "TL") {
+        // No-sew TL: 각 라인 × 시프트 수
+        total += totalTLCount;
+      } else if (position === "TM") {
+        // No-sew TM: 각 라인 × 시프트 수
+        total += totalTLCount;
+      }
+    }
+
+    // HF Welding 분리된 공정 인원 계산 (ReactFlowPage1 로직과 동일)
+    if (linesWithHfWelding.length > 0) {
+      const hfCols = config.shiftsCount || 1;
+
+      if (position === "GL") {
+        // HF Welding은 GL이 없음
+        total += 0;
+      } else if (position === "TL") {
+        // HF Welding TL: 각 라인 × 시프트 수
+        total += linesWithHfWelding.length * hfCols;
+      } else if (position === "TM") {
+        // HF Welding TM: 2개 라인당 1개 × 시프트 수
+        const hfTmGroups = Math.ceil(linesWithHfWelding.length / 2);
+        total += hfTmGroups * hfCols;
+      }
+    }
 
     return total;
   };
@@ -395,11 +427,11 @@ const Page1: React.FC = () => {
           <div className="font-semibold text-lg mb-2">인원 요약</div>
           <div className="space-y-1 text-sm">
             <div className="flex justify-between">
-              <span className="font-medium">PM:</span>
+              <span className="font-medium">VSM:</span>
               <span>{positionCounts.PM}명</span>
             </div>
             <div className="flex justify-between">
-              <span className="font-medium">LM:</span>
+              <span className="font-medium">A.VSM:</span>
               <span>{positionCounts.LM}명</span>
             </div>
             <div className="flex justify-between">

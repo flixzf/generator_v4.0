@@ -61,6 +61,15 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
 
         category: "direct",
       },
+      // Small Tooling의 TL과 TM은 Indirect
+
+      {
+        condition: (dept, level) =>
+          dept === "Small Tooling" &&
+          (level === "TL" || level === "TM"),
+
+        category: "indirect",
+      },
     ],
   },
 
@@ -103,7 +112,7 @@ const CLASSIFICATION_RULES: ClassificationRule[] = [
 
       {
         condition: (dept, level, subtitle, title) =>
-          dept === "FG WH" &&
+          dept.includes("FG WH") &&
           level === "TM" &&
           ((subtitle?.includes("Shipping") ?? false) ||
             (title?.includes("Shipping") ?? false)),

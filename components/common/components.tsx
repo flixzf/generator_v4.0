@@ -107,7 +107,14 @@ export const CustomPositionNode: React.FC<CustomPositionNodeProps> = ({
 
   let textColor = "text-black";
 
-  if (!isPartLabel && colorCategory) {
+  const isDept = level === "DEPT";
+
+  // DEPT 레벨은 별도의 진한 회색 스타일 적용
+  if (isDept) {
+    bgColor = "bg-gray-600";
+    borderColor = "border-3 border-gray-700";
+    textColor = "text-white";
+  } else if (!isPartLabel && colorCategory) {
     switch (colorCategory) {
       case "direct":
         bgColor = "bg-gray-50";
@@ -131,8 +138,6 @@ export const CustomPositionNode: React.FC<CustomPositionNodeProps> = ({
         break;
     }
   }
-
-  const isDept = level === "DEPT";
 
   const nodeMinHeight = isDept ? 40 : minHeight;
 
@@ -205,13 +210,13 @@ export const CustomPositionNode: React.FC<CustomPositionNodeProps> = ({
 
       <div>
         <div
-          className={`font-bold text-sm leading-tight${isPartLabel ? " text-gray-800" : ""}`}
+          className={`font-bold ${isDept ? "text-base" : "text-sm"} leading-tight${isPartLabel ? " text-gray-800" : ""}`}
         >
           {title}
         </div>
 
         {!isPartLabel && subtitle && (
-          <div className="text-xs mt-1 leading-tight">{subtitle}</div>
+          <div className={`${isDept ? "text-sm font-bold" : "text-xs"} mt-1 leading-tight`}>{subtitle}</div>
         )}
       </div>
     </div>

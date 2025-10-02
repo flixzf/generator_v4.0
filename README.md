@@ -1,173 +1,228 @@
-# 조직도 생성기 (Organization Chart Generator) - Value Stream 기반
+# 조직도 생성기 (Organization Chart Generator)
 
-> **빌드 상태**: Value Stream 기반 직책 체계(VSM/A.VSM) 적용 완료 (2025-01-XX)
+> **최신 업데이트**: ReactFlow 기반 인터랙티브 조직도, 부서별 바운딩 박스 레이아웃 적용 완료
 
-이 프로젝트는 **제조/생산 조직의 인원 구조를 시각화하고, 다양한 기준(라인, 플랜트, 지원부서 등)으로 인원 배분을 분석**하는 웹 애플리케이션입니다. Value Stream 기반의 계층 구조(VSM-A.VSM-GL-TL-TM)를 지원하며, Next.js(React) 기반으로 개발되었으며, ReactFlow를 활용해 조직도를 직관적으로 표현합니다.
+이 프로젝트는 **제조/생산 조직의 인원 구조를 시각화하고, 다양한 기준(라인, 플랜트, 지원부서 등)으로 인원 배분을 분석**하는 웹 애플리케이션입니다. Next.js 15 기반으로 개발되었으며, ReactFlow를 활용해 드래그 가능한 인터랙티브 조직도를 제공합니다.
 
 ---
 
 ## 주요 기능
 
-- **조직도 시각화**  
-  생산 라인, 플랜트, 지원부서 등 다양한 관점에서 조직도를 그래픽으로 확인할 수 있습니다.
-- **인원 배분/집계**  
-  Direct/Indirect/OH(Overhead) 구분에 따라 인원 집계가 가능합니다.
-- **모델 기반 인원 산정**
-  CSV 등 외부 데이터 기반으로 모델별 공정/인원 정보를 불러와 분석할 수 있습니다.
+- **인터랙티브 조직도 시각화**
+  ReactFlow 기반으로 드래그, 줌, 미니맵 등 인터랙티브 기능 제공
+- **6가지 뷰 제공**
+  Line(공정별), Plant(부서별), Support(지원부서), Direct/Indirect 인원 집계, Model 기반 산정
 - **계층별 직책 관리**
-  VSM(Value Stream Manager), A.VSM(Assistant Value Stream Manager), GL, TL, TM 등 역할 기반 인원 구조 관리.
-- **다양한 뷰 제공**  
-  Line, Plant, Support Department, Aggregation(Direct/Indirect+OH), Model-based 등 여러 페이지로 조직도를 탐색할 수 있습니다.
+  PM → LM → GL → TL → TM 계층 구조
+- **모델 기반 인원 산정**
+  생산 모델별 공정/인원 정보 기반 자동 계산
+- **부서별 스마트 레이아웃**
+  바운딩 박스 기반 균등 간격 자동 배치
 
 ---
 
-## 📁 폴더 구조 및 주요 파일 설명
+## 📁 프로젝트 구조
 
 ```
 generator_v4.0/
-├── app/                # Next.js 엔트리, 전체 레이아웃 및 글로벌 스타일
-│   ├── layout.tsx      # 전체 앱 레이아웃(폰트, 글로벌 CSS 등)
-│   ├── page.tsx        # 메인 페이지(조직도 뷰 선택 및 렌더링)
-│   └── globals.css     # Tailwind 기반 글로벌 스타일
+├── app/                    # Next.js 15 App Router
+│   ├── layout.tsx          # 루트 레이아웃 (폰트, 글로벌 스타일)
+│   ├── page.tsx            # 메인 페이지 (뷰 선택 드롭다운)
+│   └── globals.css         # Tailwind 글로벌 스타일
 │
 ├── components/
-│   ├── common/         # 조직도/공정 시각화 공통 컴포넌트
-│   │   ├── OrganizationTree.tsx      # 조직도 트리 구조, 박스, 연결선 등 시각화 핵심
-│   │   ├── ReactFlowOrgChart.tsx     # ReactFlow 기반 조직도(라인별 계층 구조)
-│   │   ├── ReactFlowPage1/2/3.tsx    # 각 페이지별 조직도(공정별, 부서별 등) 시각화
-│   │   ├── InteractivePositionBox.tsx# 상호작용 가능한 직책 박스(선택, 드래그, 편집 등)
-│   │   ├── spacingConfig.ts          # 조직도 간격/레이아웃 설정
-│   │   └── styles.ts                 # 공통 스타일 상수
+│   ├── common/             # 공통 컴포넌트 및 유틸리티
+│   │   ├── components.tsx      # PositionBox, CustomNode, Edge 컴포넌트
+│   │   ├── theme.ts            # 색상 테마 및 스타일 설정
+│   │   ├── layout.ts           # 레이아웃 계산 로직
+│   │   ├── classification.ts   # 직책 분류 엔진
+│   │   ├── utils.ts            # 유틸리티 함수
+│   │   ├── department-data.ts  # 부서 데이터 정의
+│   │   ├── PositionBox.tsx     # 직책 박스 UI 컴포넌트
+│   │   └── reactflow/          # ReactFlow 페이지별 구현
+│   │       ├── ReactFlowPage1.tsx  # Line 뷰
+│   │       ├── ReactFlowPage2.tsx  # Plant 뷰
+│   │       └── ReactFlowPage3.tsx  # Support 뷰
 │   │
-│   └── pages/         # 각 조직도 뷰(페이지)별 컴포넌트
-│       ├── page1.tsx  # 라인별 조직도(공정 중심)
-│       ├── page2.tsx  # 플랜트/부서별 조직도
-│       ├── page3.tsx  # 지원부서 조직도
-│       ├── page4-direct.tsx   # Direct 인원 집계
-│       ├── page4-indirect.tsx # Indirect+OH 인원 집계
-│       └── page5.tsx  # 모델 기반 인원 산정
+│   └── pages/              # 페이지별 메인 컴포넌트
+│       ├── page1.tsx           # Line 기반 조직도
+│       ├── page2.tsx           # Plant/부서별 조직도
+│       ├── page3.tsx           # 지원부서 조직도
+│       ├── page4-direct.tsx    # Direct 인원 집계
+│       ├── page4-indirect.tsx  # Indirect+OH 인원 집계
+│       └── page5.tsx           # 모델 기반 인원 산정
 │
 ├── context/
-│   └── OrgChartContext.tsx    # 조직도/인원 데이터 전역 상태 관리(Context API)
+│   └── OrgChartContext.tsx    # 전역 상태 관리 (Context API)
 │
-├── reference/      # 참고용 데이터/이미지
-│   ├── direct 인원분석.csv   # 인원 분석 예시 데이터
-│   ├── 조직도.png           # 조직도 예시 이미지
-│   └── 조직도_박스.png      # 박스 스타일 예시 이미지
+├── reference/              # 참고 자료 (제외됨)
+│   ├── 조직도.png
+│   └── 라인별 구성.txt
 │
-├── tailwind.config.js/ts     # TailwindCSS 설정
-├── package.json              # 의존성 및 스크립트
-└── ... (기타 설정/빌드 파일)
+├── .claude/                # Claude Code 설정 (제외됨)
+├── .gitignore              # Git 제외 파일 설정
+├── CLAUDE.md               # AI 개발 가이드
+├── next.config.ts          # Next.js 설정
+├── tailwind.config.ts      # Tailwind 설정
+├── tsconfig.json           # TypeScript 설정
+└── package.json            # 의존성 및 스크립트
 ```
 
 ---
 
-## 🔍 주요 컴포넌트/함수 역할
+## 🔍 핵심 아키텍처
 
-### 1. `app/`
-- **layout.tsx**: 전체 앱의 레이아웃, 폰트, 글로벌 스타일 적용.
-- **page.tsx**: 드롭다운으로 조직도 뷰(Page1~5) 선택, 각 페이지 컴포넌트 렌더링.
+### 1. 전역 상태 관리 (Context)
+- **OrgChartContext.tsx**: 모든 조직도 데이터 중앙 관리
+- 부서, 설정, 모델, 공정 데이터 구조
+- `useOrgChart()` 훅으로 전역 접근
 
-### 2. `components/common/`
-- **OrganizationTree.tsx**
-  - 조직도 트리 구조, 직책 박스(`PositionBox`), 연결선, 계층별 배치 등 시각화의 핵심.
-  - `OrganizationTree` 컴포넌트: 페이지별 조직도 트리 렌더링.
-  - `PositionBox`: 직책(예: GL, TL, TM 등) 박스 UI.
-  - `LMGroup`, `MultiColumnDepartmentSection`: 라인/부서별 그룹화 및 배치.
-  - `getProcessGroups`, `calculatePositionCount` 등: 공정/직책별 데이터 가공.
+### 2. 페이지 기반 뷰 시스템
+6가지 조직도 뷰를 드롭다운으로 전환:
+- **Page 1**: Line 기반 (공정 중심)
+- **Page 2**: Plant/부서 기반
+- **Page 3**: 지원부서
+- **Page 4 Direct**: Direct 인원 집계
+- **Page 4 Indirect**: Indirect + OH 인원
+- **Page 5**: 모델 기반 인원 계산
 
-- **ReactFlowOrgChart.tsx**
-  - ReactFlow 기반 조직도(라인별 계층 구조) 시각화.
-  - `generateNodes`, `generateEdges`: 계층별 노드/엣지 자동 생성.
+### 3. 컴포넌트 계층
+```
+components/
+├── common/               # 공유 시각화 컴포넌트
+│   ├── components.tsx    # PositionBox, CustomNode 등
+│   ├── theme.ts          # 색상 체계
+│   ├── layout.ts         # 레이아웃 계산
+│   ├── utils.ts          # 유틸리티
+│   └── reactflow/        # ReactFlow 구현
+└── pages/               # 페이지별 컴포넌트
+```
 
-- **ReactFlowPage1/2/3.tsx**
-  - 각 페이지별(공정별, 부서별 등) 조직도 시각화.
-  - `getProcessGroups`: 모델/공정 데이터 기반 계층 구조 생성.
+### 4. ReactFlow 통합
+- 커스텀 노드 타입 (직책별)
+- 자동 엣지 생성 (계층 연결)
+- 계산된 레이아웃 포지셔닝
+- 드래그, 줌, 미니맵 지원
 
-- **InteractivePositionBox.tsx**
-  - 상호작용 가능한 직책 박스(선택, 드래그, 더블클릭 편집 등).
-  - `useInteractivePositionBox`: 박스 선택/하이라이트/편집 등 상태 관리 훅.
-  - `PositionData` 인터페이스: 박스별 상세 정보 구조.
-
-- **spacingConfig.ts, styles.ts**
-  - 조직도 간격, 색상, 레이아웃 등 공통 스타일/설정.
-
-### 3. `components/pages/`
-- **page1.tsx**: 라인별 조직도(공정 중심, 모델별 시뮬레이션).
-- **page2.tsx**: 플랜트/부서별 조직도.
-- **page3.tsx**: 지원부서 조직도.
-- **page4-direct.tsx**: Direct 인원 집계/분석.
-- **page4-indirect.tsx**: Indirect+OH 인원 집계/분석.
-- **page5.tsx**: 모델 기반 인원 산정(외부 데이터 활용).
-
-### 4. `context/OrgChartContext.tsx`
-- 조직도/인원 데이터 전역 상태 관리(Context API).
-- `OrgChartProvider`: 전체 앱에 데이터/상태 제공.
-- `useOrgChart`: 조직도 데이터, 부서/공정/모델 정보, 인원 집계 등 제공.
-- 부서/공정/모델별 데이터 구조, 인원 계산 함수 등 포함.
-- **주요 직책 구조**: VSM(Value Stream Manager), A.VSM(Assistant Value Stream Manager), GL(Group Leader), TL(Team Leader), TM(Team Member) 등의 계층 구조로 조직. A.VSM은 1라인당 1명씩 배치되며 각 라인의 운영을 담당.
-
-### 5. `reference/`
-- 실제 조직도, 인원 분석 예시 데이터(CSV, 이미지 등).
+### 5. 데이터 흐름
+1. **OrgChartContext** → 부서/설정/모델 데이터 관리
+2. **Page 컴포넌트** → `useOrgChart()`로 데이터 소비
+3. **Common 컴포넌트** → 처리된 데이터로 시각화
+4. **Theme 시스템** → 일관된 스타일 적용
 
 ---
 
-## 🛠️ 주요 함수/로직 예시
+## 🛠️ 주요 파일 및 역할
 
-- **getProcessGroups(config, selectedModel?)**  
-  공정/모델 데이터 기반으로 GL, TL, TM 등 계층별 그룹을 생성.
-- **calculatePositionCount(position)**
-  각 직책(VSM, A.VSM, GL, TL, TM)별 인원 수 계산. A.VSM은 1라인당 1명 배치.
-- **useInteractivePositionBox()**  
-  박스 선택/하이라이트/편집 등 상호작용 상태 관리.
-- **generateNodes(), generateEdges()**  
-  조직도 계층별 노드/엣지 자동 생성(ReactFlow 기반).
-- **updateDepartment, updateConfig, updateModel**  
-  부서/공정/모델 데이터 동적 업데이트.
+### 코어 애플리케이션
+- `app/page.tsx` - 메인 진입점, 페이지 선택 라우팅
+- `app/layout.tsx` - 루트 레이아웃, 폰트 설정
+- `context/OrgChartContext.tsx` - 전역 상태 관리
 
----
+### 시각화 엔진
+- `components/common/components.tsx` - PositionBox, CustomNode 등 기본 UI
+- `components/common/theme.ts` - 색상, 스타일 테마
+- `components/common/layout.ts` - 간격 계산, 포지셔닝
+- `components/common/classification.ts` - 직책 분류 로직
+- `components/common/utils.ts` - 데이터 처리 유틸리티
 
-## 설치 및 실행 방법
-
-1. **의존성 설치**
-   ```bash
-   npm install
-   # 또는
-   yarn install
-   ```
-
-2. **개발 서버 실행**
-   ```bash
-   npm run dev
-   # 또는
-   yarn dev
-   ```
-
-3. **브라우저에서 접속**
-   ```
-   http://localhost:3000
-   ```
+### 비즈니스 로직
+각 페이지 컴포넌트는 특정 조직도 뷰 담당:
+- Line 차트: 공정 중심 계층
+- Plant 차트: 부서 중심 구조
+- Support 차트: 지원 기능
+- 집계 페이지: 인원 유형별 요약
+- 모델 페이지: 생산 모델 기반 계산
 
 ---
 
-## 주요 기술 스택
+## 기술 스택
 
-- **Next.js** (React 기반 프레임워크)
-- **TypeScript**
-- **ReactFlow** (조직도/그래프 시각화)
-- **MUI(Material UI)** (UI 컴포넌트)
-- **TailwindCSS** (스타일링)
-
----
-
-## 참고/확장
-
-- `reference/` 폴더의 CSV, PNG 파일은 실제 조직도/인원 데이터 예시입니다.
-- 각 페이지별 상세 로직은 `components/pages/` 및 `components/common/` 폴더를 참고하세요.
+- **Next.js 15** - React 프레임워크 (App Router)
+- **TypeScript** - 타입 안정성
+- **ReactFlow** - 인터랙티브 노드 기반 차트
+- **Material-UI (MUI)** - UI 컴포넌트 라이브러리
+- **TailwindCSS** - 유틸리티 우선 스타일링
+- **Jest** - 테스팅 프레임워크
 
 ---
 
-## 기여 및 문의
+## 🚀 시작하기
 
-- 코드/기능 개선, 버그 제보 등은 언제든 환영합니다.
-- 추가 문의는 프로젝트 관리자에게 연락 바랍니다.
+### 설치
+```bash
+npm install
+```
+
+### 개발 서버 실행
+```bash
+npm run dev
+```
+→ http://localhost:3000
+
+### 프로덕션 빌드
+```bash
+npm run build
+npm start
+```
+
+### 테스트
+```bash
+npm test              # 단일 실행
+npm run test:watch    # Watch 모드
+```
+
+---
+
+## 📋 개발 가이드
+
+### 스타일링
+- Tailwind (레이아웃) + MUI (복잡한 컴포넌트) 조합
+- `theme.ts`에서 조직도 스타일 통일
+- 계층별 동적 스타일링 (CSS-in-JS)
+
+### 타입 안정성
+- 엄격한 TypeScript 설정
+- Department, Config, ModelData, ProcessData 인터페이스
+- 경로 별칭: `@/*` → 루트 디렉토리
+
+### 빌드 설정
+- ESLint 오류는 프로덕션 빌드 차단 안 함 (`next.config.ts`)
+- Turbopack 개발 빌드 가속
+- PostCSS로 Tailwind 처리
+
+### 배포 (Vercel)
+- 절대 경로 import 사용 (`@/components/...`)
+- Node.js 20 명시 (`.nvmrc`, `package.json` engines)
+- TypeScript 경로 해석 최적화
+
+---
+
+## 📝 주요 개념
+
+### 계층 구조
+```
+PM (Plant Manager)
+ └── LM (Line Manager) - 2개 라인당 1명
+      └── GL (Group Leader) - 부서/섹션 레벨
+           └── TL (Team Leader) - 팀 레벨
+                └── TM (Team Member) - 개별 기여자
+```
+
+### 인원 분류
+- **Direct**: 생산 라인 직접 인원
+- **Indirect**: 지원 기능 (QA, MA, Warehouse 등)
+- **OH (Overhead)**: 관리 및 간접 인원 (HR, Admin 등)
+
+---
+
+## 🤝 기여 및 문의
+
+코드 개선, 버그 제보 등 언제든 환영합니다.
+추가 문의는 프로젝트 관리자에게 연락하세요.
+
+---
+
+## 📄 라이선스
+
+이 프로젝트는 내부 사용을 위한 것입니다.

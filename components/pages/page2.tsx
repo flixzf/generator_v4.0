@@ -1,8 +1,9 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useOrgChart } from "@/context/OrgChartContext";
 import { ReactFlowPage2 } from "@/components/common/reactflow/ReactFlowPage2";
 import { ReactFlowInstance } from 'reactflow';
+import { makeDoubleLines } from "@/components/common/utils";
 
 // === Page2 컴포넌트 ===
 const Page2: React.FC = () => {
@@ -14,6 +15,67 @@ const Page2: React.FC = () => {
   const handleZoomIn = () => rfInstance?.zoomIn?.({ duration: 300 });
   const handleZoomOut = () => rfInstance?.zoomOut?.({ duration: 300 });
   const handleZoomReset = () => rfInstance?.fitView?.({ duration: 300 });
+
+  // === 인원 계산 ===
+  const positionCounts = useMemo(() => {
+    const L = config.lineCount;
+
+    // Admin TM 계산
+    let personnelCount = L >= 5 ? 2 : 1;
+    let productionCount = L >= 2 ? (L >= 7 ? 2 : 1) : 0;
+    let isqCount = L >= 3 ? 1 : 0;
+    const adminTMCount = personnelCount + productionCount + isqCount;
+
+    // Small Tooling TM 계산
+    const smallToolingTMCount = Math.max(0, L - 1);
+
+    // Market TM 계산
+    let subMaterialCount = L >= 7 ? 4 : (L >= 5 ? 3 : (L >= 3 ? 2 : 1));
+    let rawMaterialTMCount = L >= 7 ? 5 : (L >= 6 ? 4 : (L >= 5 ? 3 : (L >= 3 ? 2 : (L >= 2 ? 1 : 0))));
+    let accMarketCount = L >= 7 ? 4 : (L >= 5 ? 3 : (L >= 3 ? 2 : 1));
+
+    let bottomMarketTMCount = 0;
+    if (L === 1) bottomMarketTMCount = 2;
+    else if (L === 2) bottomMarketTMCount = 3;
+    else if (L === 3) bottomMarketTMCount = 4;
+    else if (L === 4) bottomMarketTMCount = 5;
+    else if (L === 5) bottomMarketTMCount = 6;
+    else if (L === 6) bottomMarketTMCount = 7;
+    else if (L === 7) bottomMarketTMCount = 8;
+    else bottomMarketTMCount = 9;
+
+    const marketTMCount = subMaterialCount + rawMaterialTMCount + accMarketCount + bottomMarketTMCount;
+
+    // Plant Production TM 계산
+    const plantProductionTMCount = makeDoubleLines(L).length * 2; // Input + Output
+
+    // FG WH/P&L Market TM 계산
+    let stencilCount = L >= 7 ? 4 : (L >= 5 ? 3 : (L >= 3 ? 2 : 1));
+    const coLabelCount = 1;
+    let boxCount = L >= 7 ? 4 : (L >= 5 ? 3 : (L >= 3 ? 2 : 1));
+    let paperCount = L >= 7 ? 4 : (L >= 5 ? 3 : (L >= 3 ? 2 : 1));
+    let shippingCount = L >= 7 ? 6 : (L >= 6 ? 5 : (L >= 5 ? 4 : (L >= 3 ? 3 : (L >= 2 ? 2 : 1))));
+    const incomingSettingCount = L;
+    const scanSystemReportCount = 1;
+    const fgwhPnlMarketTMCount = stencilCount + coLabelCount + boxCount + paperCount + shippingCount + incomingSettingCount + scanSystemReportCount;
+
+    // 총 TM 수
+    const totalTM = adminTMCount + smallToolingTMCount + marketTMCount + plantProductionTMCount + fgwhPnlMarketTMCount;
+
+    // GL 수 (Market, FG WH/P&L Market만 GL 있음)
+    const totalGL = 2; // Market GL 1개 + FG WH/P&L Market GL 1개
+
+    // TL 수
+    const totalTL = 1 + 2 + 2; // Small Tooling 1개 + Market 2개 (Upper/Bottom) + FG WH/P&L 2개 (P&L/FG WH)
+
+    return {
+      GL: totalGL,
+      TL: totalTL,
+      TM: totalTM
+    };
+  }, [config.lineCount]);
+
+  const totalPeople = positionCounts.GL + positionCounts.TL + positionCounts.TM;
 
   // === JSX 반환 ===
   return (
@@ -31,6 +93,29 @@ const Page2: React.FC = () => {
         </div>
         <div className="bg-gray-400 border border-gray-500 px-4 py-2 rounded-lg shadow-sm">
           <span className="text-sm font-semibold text-black">OH</span>
+        </div>
+      </div>
+
+      {/* 인원 요약 정보 패널 - 오른쪽 상단 */}
+      <div className="fixed right-8 top-24 bg-white p-4 rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="font-semibold text-lg mb-2">인원 요약</div>
+        <div className="space-y-1 text-sm">
+          <div className="flex justify-between">
+            <span className="font-medium">GL:</span>
+            <span>{positionCounts.GL}명</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">TL:</span>
+            <span>{positionCounts.TL}명</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">TM:</span>
+            <span>{positionCounts.TM}명</span>
+          </div>
+          <div className="border-t border-gray-200 mt-2 pt-2 flex justify-between font-bold">
+            <span>총 인원:</span>
+            <span>{totalPeople}명</span>
+          </div>
         </div>
       </div>
 
